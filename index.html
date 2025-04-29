@@ -6,95 +6,109 @@
   <title>Currículo - Marcus Vinícius</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 p-6 sm:p-10 max-w-4xl mx-auto font-sans">
+<body class="bg-white text-gray-800 font-sans">
+  <div class="grid grid-cols-1 md:grid-cols-3 max-w-6xl mx-auto min-h-screen shadow-lg">
+    
+    <!-- Coluna Esquerda -->
+    <aside class="bg-blue-700 text-white p-6 md:col-span-1 flex flex-col items-center">
+      <img src="https://mvp-mark.github.io/photo.jpg" alt="Foto de Perfil" class="rounded-full w-32 h-32 mb-4 border-4 border-white">
+      <h1 class="text-2xl font-bold text-center">Marcus Vinícius</h1>
+      <p class="text-sm text-center mb-6">Desenvolvedor Full Stack Pleno</p>
 
-  <!-- Header -->
-  <header class="mb-10">
-    <h1 class="text-3xl font-bold text-gray-900">Marcus Vinícius Peixoto Paulo</h1>
-    <p class="text-lg text-gray-700">Desenvolvedor Full Stack Pleno</p>
-    <div class="mt-2 text-sm text-gray-600 space-y-1">
-      <p>Manaus - AM | <a href="mailto:mvp.paulo@gmail.com" class="text-blue-600">mvp.paulo@gmail.com</a> | +55 92 98436-8730</p>
-      <p>
-        <a href="https://linkedin.com/in/marcus-vinicius-peixoto-paulo-993a8249" class="text-blue-600">LinkedIn</a> |
-        <a href="https://github.com/mvp-mark" class="text-blue-600">GitHub</a> |
-        <a href="https://lattes.cnpq.br/8083965946239473" class="text-blue-600">Lattes</a>
-      </p>
-    </div>
-  </header>
+      <div class="w-full">
+        <h2 class="text-lg font-semibold mb-2 border-b border-white pb-1">Contato</h2>
+        <p class="text-sm">Manaus - AM</p>
+        <p class="text-sm">+55 92 98436-8730</p>
+        <p class="text-sm break-all"><a href="mailto:mvp.paulo@gmail.com" class="underline">mvp.paulo@gmail.com</a></p>
+        <p class="text-sm mt-1"><a href="https://linkedin.com/in/marcus-vinicius-peixoto-paulo-993a8249" class="underline">LinkedIn</a></p>
+        <p class="text-sm"><a href="https://github.com/mvp-mark" class="underline">GitHub</a></p>
+        <p class="text-sm"><a href="https://lattes.cnpq.br/8083965946239473" class="underline">Lattes</a></p>
+      </div>
 
-  <!-- Experiência Profissional -->
-  <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">Experiência Profissional</h2>
+      <div class="mt-6 w-full">
+        <h2 class="text-lg font-semibold mb-2 border-b border-white pb-1">Educação</h2>
+        <p class="text-sm">Uninorte – Sistemas de Informação</p>
+      </div>
 
-    <div class="mb-6">
-      <h3 class="font-bold">Instituto Creathus | Desenvolvedor Backend Pleno</h3>
-      <p class="text-sm italic text-gray-600">Julho 2023 - Atual</p>
-      <ul class="list-disc list-inside mt-1 text-sm space-y-1">
-        <li>Desenvolvimento de APIs com NestJS e C#, garantindo escalabilidade e performance.</li>
-        <li>Comunicação em tempo real entre backend e mobile via WebSocket.</li>
-        <li>Integração com equipes frontend e mobile para entregas integradas.</li>
-        <li>Aplicação de boas práticas de testes e arquitetura.</li>
-      </ul>
-    </div>
+      <div class="mt-6 w-full">
+        <h2 class="text-lg font-semibold mb-2 border-b border-white pb-1">Idiomas</h2>
+        <p class="text-sm">Português (nativo)</p>
+        <p class="text-sm">Inglês intermediário – leitura técnica fluente</p>
+      </div>
+    </aside>
 
-    <div class="mb-6">
-      <h3 class="font-bold">ICTS | Desenvolvedor Full Stack Pleno</h3>
-      <p class="text-sm italic text-gray-600">Outubro 2022 - Junho 2023</p>
-      <ul class="list-disc list-inside mt-1 text-sm space-y-1">
-        <li>Desenvolvimento com React, Angular, NestJS, Node.js e Flutter.</li>
-        <li>Integrações backend-mobile com foco em performance.</li>
-        <li>Criação de APIs REST e comunicação em tempo real.</li>
-        <li>Revisão de código e contribuição técnica em squads ágeis.</li>
-      </ul>
-    </div>
+    <!-- Coluna Direita -->
+    <main class="p-8 md:col-span-2 bg-gray-50">
+      <!-- Resumo -->
+      <section class="mb-6">
+        <h2 class="text-xl font-bold text-blue-700 mb-2">Resumo Profissional</h2>
+        <p class="text-sm text-gray-700">
+          Desenvolvedor full stack com experiência em backend, frontend e mobile. Foco em APIs escaláveis, arquitetura modular e integrações em tempo real.
+        </p>
+      </section>
 
-    <div class="mb-6">
-      <h3 class="font-bold">IFD | Desenvolvedor Full Stack</h3>
-      <p class="text-sm italic text-gray-600">2022</p>
-      <ul class="list-disc list-inside mt-1 text-sm space-y-1">
-        <li>Desenvolvimento de soluções com React, Flutter, Node.js e Spring Boot.</li>
-        <li>Utilização de AWS (Lambda, S3, EC2) com arquitetura serverless.</li>
-        <li>Implementação com foco em escalabilidade e modularidade.</li>
-        <li>Práticas DevOps para automação de infraestrutura e deploy.</li>
-      </ul>
-    </div>
+      <!-- Experiência Profissional -->
+      <section class="mb-6">
+        <h2 class="text-xl font-bold text-blue-700 mb-2">Experiência Profissional</h2>
 
-    <div class="mb-6">
-      <h3 class="font-bold">DETRAN AM | Estagiário de Desenvolvimento/Suporte</h3>
-      <p class="text-sm italic text-gray-600">2021 - 2022</p>
-      <ul class="list-disc list-inside mt-1 text-sm space-y-1">
-        <li>Desenvolvimento de sistemas com PHP, React e Python.</li>
-        <li>Coleta de dados do Waze e visualização com Kibana (projeto com SES-AM).</li>
-        <li>Manutenção e suporte de ferramentas internas.</li>
-        <li>Participação em iniciativas de ciência de dados públicas.</li>
-      </ul>
-    </div>
-  </section>
+        <div class="mb-4">
+          <h3 class="font-semibold">Instituto Creathus | Desenvolvedor Backend Pleno</h3>
+          <p class="text-sm italic text-gray-600">Julho 2023 - Atual</p>
+          <ul class="list-disc list-inside text-sm">
+            <li>APIs com NestJS e C# com foco em performance.</li>
+            <li>Comunicação em tempo real via WebSocket.</li>
+            <li>Integração com times frontend e mobile.</li>
+            <li>Boas práticas de testes e arquitetura.</li>
+          </ul>
+        </div>
 
-  <!-- Formação -->
-  <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-800 mb-2">Educação</h2>
-    <p class="text-sm"><strong>Uninorte</strong> – Sistemas de Informação (Curso Concluído)</p>
-  </section>
+        <div class="mb-4">
+          <h3 class="font-semibold">ICTS | Desenvolvedor Full Stack Pleno</h3>
+          <p class="text-sm italic text-gray-600">Outubro 2022 - Junho 2023</p>
+          <ul class="list-disc list-inside text-sm">
+            <li>React, Angular, NestJS, Flutter.</li>
+            <li>Integração backend-mobile com foco em performance.</li>
+            <li>APIs REST e WebSocket.</li>
+            <li>Revisão de código e contribuição técnica em squads.</li>
+          </ul>
+        </div>
 
-  <!-- Habilidades Técnicas -->
-  <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-800 mb-2">Habilidades Técnicas</h2>
-    <p class="text-sm">
-      <strong>Backend:</strong> Node.js, NestJS, Spring Boot, C#<br>
-      <strong>Frontend:</strong> React, Angular, Next.js<br>
-      <strong>Mobile:</strong> Flutter<br>
-      <strong>Banco de Dados:</strong> Prisma, Knex<br>
-      <strong>Cloud & DevOps:</strong> AWS (S3, EC2, Lambda), Serverless<br>
-      <strong>Outros:</strong> WebSocket, GraphQL, TRPC
-    </p>
-  </section>
+        <div class="mb-4">
+          <h3 class="font-semibold">IFD | Desenvolvedor Full Stack</h3>
+          <p class="text-sm italic text-gray-600">2022</p>
+          <ul class="list-disc list-inside text-sm">
+            <li>React, Flutter, Node.js, Spring Boot.</li>
+            <li>Arquitetura Serverless com AWS.</li>
+            <li>Foco em escalabilidade e modularidade.</li>
+            <li>Práticas DevOps para CI/CD.</li>
+          </ul>
+        </div>
 
-  <!-- Idiomas -->
-  <section>
-    <h2 class="text-xl font-semibold text-gray-800 mb-2">Idiomas</h2>
-    <p class="text-sm">Português (nativo) | Inglês intermediário – leitura técnica fluente</p>
-  </section>
+        <div class="mb-4">
+          <h3 class="font-semibold">DETRAN AM | Estagiário de Desenvolvimento</h3>
+          <p class="text-sm italic text-gray-600">2021 - 2022</p>
+          <ul class="list-disc list-inside text-sm">
+            <li>PHP, React, Python.</li>
+            <li>Dados do Waze + visualização Kibana (SES-AM).</li>
+            <li>Manutenção de sistemas internos.</li>
+            <li>Projetos públicos de ciência de dados.</li>
+          </ul>
+        </div>
+      </section>
 
+      <!-- Habilidades Técnicas -->
+      <section>
+        <h2 class="text-xl font-bold text-blue-700 mb-2">Habilidades Técnicas</h2>
+        <p class="text-sm leading-relaxed">
+          <strong>Backend:</strong> Node.js, NestJS, Spring Boot, C#<br>
+          <strong>Frontend:</strong> React, Angular, Next.js<br>
+          <strong>Mobile:</strong> Flutter<br>
+          <strong>Banco de Dados:</strong> Prisma, Knex<br>
+          <strong>Cloud & DevOps:</strong> AWS (S3, EC2, Lambda), Serverless<br>
+          <strong>Outros:</strong> WebSocket, GraphQL, TRPC
+        </p>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
