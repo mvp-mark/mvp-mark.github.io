@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Infil Glossary — Termos Engraçados da FGC</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap');
+
+:root{
+  --bg: #0b0713;
+  --bg2: #16092a;
+  --pink: #ff2e63;
+  --cyan: #00e5ff;
+  --gold: #ffcd3c;
+  --ink: #f3eefc;
+  --dim: #8f7fae;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+html,body{
+  height:100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  overflow:hidden;
+}
+
+.stage{
+  position:relative;
+  width:100%;
+  height:100vh;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,46,99,0.12), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(0,229,255,0.12), transparent 45%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+}
+
+.stage::before{
+  content:"";
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.025) 0px,
+    rgba(255,255,255,0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events:none;
+  z-index:5;
+}
+
+.hud{
+  position:absolute; top:0; left:0; right:0;
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 16px 32px;
+  z-index:10;
+  font-size:12px;
+  letter-spacing:2px;
+  color: var(--dim);
+}
+.hud .p1{color:var(--pink); text-align:left;}
+.hud .p2{color:var(--cyan); text-align:right;}
+.hud .round{
+  font-family:'Anton', sans-serif;
+  font-size:18px;
+  letter-spacing:4px;
+  color: var(--gold);
+  text-align:center;
+}
+.hud .source{
+  display:block; font-size:9px; letter-spacing:1px; color: var(--dim); margin-top:2px;
+}
+.healthbar{
+  width:180px; height:7px; background:#241238; border:1px solid rgba(255,255,255,0.15);
+  margin-top:5px; overflow:hidden;
+}
+.healthbar span{ display:block; height:100%; }
+.p1 .healthbar span{ background: linear-gradient(90deg, var(--pink), #ff8fb3); float:right; }
+.p2 .healthbar span{ background: linear-gradient(90deg, #8fe9ff, var(--cyan)); }
+
+.slides{ position:relative; width:100%; height:100%; }
+.slide{
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items:center;
+  gap: 34px;
+  padding: 80px 6vw 86px;
+  opacity:0;
+  visibility:hidden;
+  transform: scale(1.05);
+  transition: opacity .45s ease, transform .45s ease;
+}
+.slide.active{
+  opacity:1; visibility:visible; transform:scale(1);
+  z-index:2;
+}
+
+.slide-text{ display:flex; flex-direction:column; align-items:flex-start; }
+
+.eyebrow{
+  font-size:12px; letter-spacing:4px; color: var(--dim); margin-bottom:10px;
+  display:flex; align-items:center; gap:10px; text-align:left;
+}
+.eyebrow::before{
+  content:"◆"; color: var(--gold); font-size:10px;
+}
+
+.term{
+  font-family:'Anton', sans-serif;
+  font-size: clamp(30px, 4.6vw, 62px);
+  letter-spacing: 1px;
+  line-height: 0.95;
+  text-transform:uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, var(--gold) 140%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 60px rgba(255,205,60,0.15);
+  text-align:left;
+  position:relative;
+}
+
+.term .glitch-layer{
+  position:absolute; inset:0;
+  color: var(--pink);
+  -webkit-text-fill-color: var(--pink);
+  opacity:0;
+  mix-blend-mode: screen;
+}
+.slide.active .term .glitch-layer{
+  animation: glitchpop .5s ease-out .05s 1;
+}
+@keyframes glitchpop{
+  0%{ opacity:0; transform: translate(0,0); }
+  20%{ opacity:.8; transform: translate(-6px,2px); }
+  40%{ opacity:.5; transform: translate(5px,-2px); }
+  60%{ opacity:.3; transform: translate(-3px,1px); }
+  100%{ opacity:0; transform: translate(0,0); }
+}
+
+.definition{
+  max-width: 520px;
+  text-align:left;
+  font-size: 13.5px;
+  line-height:1.65;
+  color:#d9cff0;
+  margin-top: 16px;
+}
+.definition b{ color: var(--gold); }
+
+.example{
+  margin-top: 14px;
+  padding: 10px 16px;
+  border: 1px dashed rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.03);
+  font-size: 11.5px;
+  color: var(--cyan);
+  max-width: 480px;
+  text-align:left;
+  border-radius: 2px;
+}
+.example::before{ content:"“"; color:var(--pink); font-size:16px; }
+.example::after{ content:"”"; color:var(--pink); font-size:16px; }
+
+.source-tag{
+  margin-top: 12px;
+  font-size: 9.5px;
+  letter-spacing: 2px;
+  color: var(--dim);
+}
+.source-tag span{ color: var(--gold); }
+
+.video-panel{
+  position:relative;
+  width:100%;
+}
+.video-frame{
+  position:relative;
+  display:block;
+  width:100%;
+  padding-top: 56.25%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,46,99,0.35), transparent 55%),
+    radial-gradient(circle at 75% 80%, rgba(0,229,255,0.3), transparent 55%),
+    linear-gradient(135deg, #1a0d2e 0%, #0b0713 100%);
+  border: 2px solid rgba(255,205,60,0.35);
+  box-shadow: 0 0 0 6px rgba(255,46,99,0.06), 0 20px 50px rgba(0,0,0,0.5);
+  border-radius: 4px;
+  overflow:hidden;
+  cursor:pointer;
+  text-decoration:none;
+}
+.video-frame iframe{
+  position:absolute; inset:0; width:100%; height:100%; border:0;
+}
+.video-frame .cover-label{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 20px;
+  font-family:'Anton', sans-serif;
+  font-size: clamp(16px, 2.4vw, 26px);
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.14);
+  text-transform:uppercase;
+  line-height:1.15;
+  user-select:none;
+}
+.video-frame::before{
+  content:"";
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255,255,255,0.025) 0px,
+    rgba(255,255,255,0.025) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+  pointer-events:none;
+}
+.video-frame img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  filter: saturate(1.1) contrast(1.05);
+  transition: transform .3s ease, filter .3s ease;
+  background: transparent;
+}
+.video-tag{
+  margin-top: 10px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  text-align:center;
+}
+.video-tag span{ color: var(--cyan); }
+
+.combo-mini{
+  position:absolute; top:-14px; right:-10px;
+  font-family:'Anton', sans-serif;
+  font-size: 34px;
+  color: var(--gold);
+  text-shadow: 2px 2px 0 var(--pink);
+  opacity:0;
+  z-index:6;
+  pointer-events:none;
+  transform: rotate(-6deg);
+}
+.slide.active .combo-mini{
+  animation: hitpop .5s cubic-bezier(.2,1.6,.4,1) .15s forwards;
+}
+@keyframes hitpop{
+  0%{ opacity:0; transform: scale(2) rotate(6deg); }
+  60%{ opacity:1; transform: scale(0.9) rotate(-3deg); }
+  100%{ opacity:1; transform: scale(1) rotate(-6deg); }
+}
+
+.nav{
+  position:absolute; bottom:26px; left:0; right:0;
+  display:flex; align-items:center; justify-content:center; gap:20px;
+  z-index:10;
+}
+.dot{
+  width:9px; height:9px; border-radius:50%;
+  background: rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.25);
+  cursor:pointer;
+  transition: all .25s ease;
+}
+.dot.active{ background: var(--gold); box-shadow:0 0 12px var(--gold); transform:scale(1.3); }
+
+.arrow{
+  cursor:pointer; user-select:none;
+  font-family:'Anton', sans-serif;
+  font-size:13px; letter-spacing:3px;
+  color: var(--ink);
+  border:1px solid rgba(255,255,255,0.25);
+  padding: 9px 16px;
+  background: rgba(255,255,255,0.04);
+  transition: all .2s ease;
+}
+.arrow:hover{ background: var(--pink); border-color:var(--pink); color:#12081c; }
+
+.hint{
+  position:absolute; bottom:66px; left:0; right:0; text-align:center;
+  font-size:10px; letter-spacing:3px; color: var(--dim); z-index:10;
+}
+
+.flash{
+  position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:20;
+}
+.flash.on{ animation: flashhit .28s ease-out; }
+@keyframes flashhit{
+  0%{ opacity:.85; } 100%{ opacity:0; }
+}
+
+@media (max-width: 860px){
+  html, body{ overflow:auto; }
+  .stage{ height:auto; min-height:100vh; }
+  .slide{
+    grid-template-columns: 1fr;
+    padding: 100px 6vw 120px;
+    position:relative;
+    inset:auto;
+    display:none;
+  }
+  .slide.active{ display:grid; }
+  .hud{ padding:14px 18px; font-size:9px; }
+  .healthbar{ width:90px; }
+  .term{ text-align:center; }
+  .slide-text{ align-items:center; }
+  .definition, .example{ text-align:center; }
+  .eyebrow{ justify-content:center; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="flash" id="flash"></div>
+
+  <div class="hud">
+    <div class="p1">
+      PLAYER 1 // NEWBIE<br>
+      <div class="healthbar"><span style="width:35%"></span></div>
+    </div>
+    <div class="round">
+      <span id="roundLabel">ROUND 1 / 5</span>
+      <span class="source">FONTE: GLOSSARY.INFIL.NET</span>
+    </div>
+    <div class="p2">
+      PLAYER 2 // FGC VET<br>
+      <div class="healthbar"><span style="width:100%"></span></div>
+    </div>
+  </div>
+
+  <div class="slides" id="slides">
+
+    <section class="slide">
+      <div class="slide-text">
+        <div class="eyebrow">TERMO 01 · PRESENTE DE ASSIST</div>
+        <h1 class="term">HAPPY BIRTHDAY
+          <span class="glitch-layer">HAPPY BIRTHDAY</span>
+        </h1>
+        <p class="definition">Acertar <b>dois personagens ao mesmo tempo</b> num jogo em equipe (tipo Marvel vs. Capcom). Rola quando alguém chama um assist, toma hit na hora, e o assist entra de brinde na zoeira. O nome vem do "presentão" que seu oponente te dá com um assist call ruim.</p>
+        <div class="example">"Chamou o assist na hora errada e presenteou os dois personagens no mesmo combo. Happy Birthday!"</div>
+        <div class="source-tag">ENTRADA REAL DO GLOSSÁRIO · <span>infil.net</span> · 誕生日おめでとう</div>
+      </div>
+      <div class="video-panel">
+        <div class="combo-mini">2X!</div>
+        <div class="video-frame">
+          <div class="cover-label">HAPPY<br>BIRTHDAY</div>
+          <iframe src="https://www.youtube.com/embed/E_eKopTwbv0" title="Happy Birthday combo example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>Skullgirls — Happy Birthday combo</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-text">
+        <div class="eyebrow">TERMO 02 · O IRMÃO MAIS PESADO</div>
+        <h1 class="term">MERRY CHRISTMAS
+          <span class="glitch-layer">MERRY CHRISTMAS</span>
+        </h1>
+        <p class="definition">A versão ainda mais rara e brutal do Happy Birthday: acertar <b>os três personagens do time ao mesmo tempo</b>. Costuma acontecer quando você toma hit bem no início de uma team super — e aí, salvo um drop de combo, a partida geralmente já era na hora.</p>
+        <div class="example">"Pegou o time inteiro numa super só. Merry Christmas, GG."</div>
+        <div class="source-tag">ENTRADA REAL DO GLOSSÁRIO · <span>infil.net</span> · メリークリスマス</div>
+      </div>
+      <div class="video-panel">
+        <div class="combo-mini">3X!</div>
+        <div class="video-frame">
+          <div class="cover-label">MERRY<br>CHRISTMAS</div>
+          <iframe src="https://www.youtube.com/embed/loVF0_9ioVU" title="Merry Christmas combo example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>UMVC3: Merry Christmas Holiday Special</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-text">
+        <div class="eyebrow">TERMO 03 · JOGA NO INSTINTO</div>
+        <h1 class="term">GORILLA
+          <span class="glitch-layer">GORILLA</span>
+        </h1>
+        <p class="definition">Também conhecido como <b>Unga Bunga</b>. Aquele jogador que quer chegar na sua cara de qualquer jeito e sair batendo tudo aleatoriamente, sabendo que qualquer movimento que sair vai ser difícil de parar. Gorilas não ligam pra "pensar" ou jogar neutro — eles fazem um move de tela inteira difícil de punir e algo doido que sempre parece acertar.</p>
+        <div class="example">"Jogar sólido contra ele funciona... até você precisar igualar o nível de loucura dele também."</div>
+        <div class="source-tag">ENTRADA REAL DO GLOSSÁRIO · <span>infil.net</span></div>
+      </div>
+      <div class="video-panel">
+        <div class="combo-mini">RAWR!</div>
+        <div class="video-frame">
+          <div class="cover-label">GORILLA</div>
+          <iframe src="https://www.youtube.com/embed/hL1XZbcfirg" title="Gorilla / Unga Bunga example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>DBFZ — Top 10 Unga Bunga Moves</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-text">
+        <div class="eyebrow">TERMO 04 · MOEDA AO AR</div>
+        <h1 class="term">50/50
+          <span class="glitch-layer">50/50</span>
+        </h1>
+        <p class="definition">Um <b>mixup</b> com duas opções principais pro atacante, cada uma exigindo uma defesa diferente — tipo um cross-up (bloquear esquerda ou direita) ou um overhead/low (bloquear em pé ou agachado). Chamam assim porque parece que você só tem 50% de chance de defender certo.</p>
+        <div class="example">"Overhead ou low? Esquerda ou direita? Golpe ou throw? Bem-vindo ao 50/50, boa sorte."</div>
+        <div class="source-tag">ENTRADA REAL DO GLOSSÁRIO · <span>infil.net</span></div>
+      </div>
+      <div class="video-panel">
+        <div class="combo-mini">50%</div>
+        <div class="video-frame">
+          <div class="cover-label">50/50</div>
+          <iframe src="https://www.youtube.com/embed/v2865t4Rb_4" title="50/50 mixup example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>Tekken 7 — Kazuya, o Rei do 50/50</span></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-text">
+        <div class="eyebrow">TERMO 05 · PROVOCAÇÃO CLÁSSICA</div>
+        <h1 class="term">TEABAGGING
+          <span class="glitch-layer">TEABAGGING</span>
+        </h1>
+        <p class="definition">Agachar repetidamente em cima do oponente <b>derrotado</b> como provocação. O jeito universal (e mal-educado) de dizer "gg, eu ganhei".</p>
+        <div class="example">"Ele não só venceu, ele ficou agachando em cima de mim até o replay acabar."</div>
+        <div class="source-tag">ENTRADA REAL DO GLOSSÁRIO · <span>infil.net</span></div>
+      </div>
+      <div class="video-panel">
+        <div class="combo-mini">GG!</div>
+        <div class="video-frame">
+          <div class="cover-label">TEABAGGING</div>
+          <iframe src="https://www.youtube.com/embed/Wrdfw5hKWdM" title="Teabagging example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>SFV — Teabagging in a Fighting Game</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="hint">USE ← → OU CLIQUE NAS SETAS</div>
+  <div class="nav">
+    <div class="arrow" id="prevBtn">◀ ANTERIOR</div>
+    <div id="dots" style="display:flex; gap:10px;"></div>
+    <div class="arrow" id="nextBtn">PRÓXIMO ▶</div>
+  </div>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const dotsWrap = document.getElementById('dots');
+const roundLabel = document.getElementById('roundLabel');
+const flash = document.getElementById('flash');
+let current = 0;
+
+slides.forEach((s, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0 ? ' active' : '');
+  d.addEventListener('click', () => goTo(i));
+  dotsWrap.appendChild(d);
+});
+const dots = document.querySelectorAll('.dot');
+
+function goTo(i){
+  if(i < 0 || i >= slides.length || i === current) return;
+  slides[current].classList.remove('active');
+  dots[current].classList.remove('active');
+  current = i;
+  slides[current].classList.add('active');
+  dots[current].classList.add('active');
+  roundLabel.textContent = 'ROUND ' + (current+1) + ' / ' + slides.length;
+  flash.classList.remove('on');
+  void flash.offsetWidth;
+  flash.classList.add('on');
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => goTo(current+1 < slides.length ? current+1 : current));
+document.getElementById('prevBtn').addEventListener('click', () => goTo(current-1 >= 0 ? current-1 : current));
+
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'ArrowRight') goTo(current+1 < slides.length ? current+1 : current);
+  if(e.key === 'ArrowLeft') goTo(current-1 >= 0 ? current-1 : current);
+});
+
+slides[0].classList.add('active');
+</script>
+
+</body>
+</html>
