@@ -224,6 +224,40 @@ html,body{
   transition: transform .3s ease, filter .3s ease;
   background: transparent;
 }
+.video-frame:hover img{ transform: scale(1.04); filter: saturate(1.3) contrast(1.1) brightness(0.75); }
+.play-btn{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  z-index:2;
+}
+.play-btn::before{
+  content:"";
+  width:64px; height:64px;
+  border-radius:50%;
+  background: rgba(11,7,19,0.55);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 24px rgba(255,205,60,0.35);
+  transition: transform .2s ease, background .2s ease;
+}
+.video-frame:hover .play-btn::before{ transform: scale(1.1); background: var(--pink); border-color: var(--pink); }
+.play-btn::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  transform: translate(-42%, -50%);
+  width:0; height:0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 20px solid var(--ink);
+}
+.video-frame:hover .play-btn::after{ border-left-color: #12081c; }
+.yt-badge{
+  position:absolute; bottom:10px; right:10px; z-index:2;
+  font-family:'Space Mono', monospace;
+  font-size:10px; letter-spacing:2px;
+  color:#fff; background: rgba(0,0,0,0.55);
+  padding:4px 8px; border-radius:2px;
+  border:1px solid rgba(255,255,255,0.2);
+}
 .video-tag{
   margin-top: 10px;
   font-size: 10px;
@@ -346,10 +380,12 @@ html,body{
       </div>
       <div class="video-panel">
         <div class="combo-mini">2X!</div>
-        <div class="video-frame">
+        <a class="video-frame" href="https://www.youtube.com/watch?v=E_eKopTwbv0" target="_blank" rel="noopener">
           <div class="cover-label">HAPPY<br>BIRTHDAY</div>
-          <iframe src="https://www.youtube.com/embed/E_eKopTwbv0" title="Happy Birthday combo example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
+          <img src="https://img.youtube.com/vi/E_eKopTwbv0/hqdefault.jpg" alt="Happy Birthday combo example" onerror="this.style.display='none'">
+          <div class="play-btn"></div>
+          <div class="yt-badge">▶ YOUTUBE</div>
+        </a>
         <div class="video-tag">EXEMPLO EM VÍDEO · <span>Skullgirls — Happy Birthday combo</span></div>
       </div>
     </section>
@@ -366,10 +402,12 @@ html,body{
       </div>
       <div class="video-panel">
         <div class="combo-mini">3X!</div>
-        <div class="video-frame">
+        <a class="video-frame" href="https://www.youtube.com/watch?v=loVF0_9ioVU" target="_blank" rel="noopener">
           <div class="cover-label">MERRY<br>CHRISTMAS</div>
-          <iframe src="https://www.youtube.com/embed/loVF0_9ioVU" title="Merry Christmas combo example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
+          <img src="https://img.youtube.com/vi/loVF0_9ioVU/hqdefault.jpg" alt="Merry Christmas combo example" onerror="this.style.display='none'">
+          <div class="play-btn"></div>
+          <div class="yt-badge">▶ YOUTUBE</div>
+        </a>
         <div class="video-tag">EXEMPLO EM VÍDEO · <span>UMVC3: Merry Christmas Holiday Special</span></div>
       </div>
     </section>
@@ -386,11 +424,13 @@ html,body{
       </div>
       <div class="video-panel">
         <div class="combo-mini">RAWR!</div>
-        <div class="video-frame">
+        <a class="video-frame" href="https://www.youtube.com/shorts/kCPfRG_6tWs" target="_blank" rel="noopener">
           <div class="cover-label">GORILLA</div>
-          <iframe src="https://www.youtube.com/embed/hL1XZbcfirg" title="Gorilla / Unga Bunga example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
-        <div class="video-tag">EXEMPLO EM VÍDEO · <span>DBFZ — Top 10 Unga Bunga Moves</span></div>
+          <img src="https://img.youtube.com/vi/kCPfRG_6tWs/hqdefault.jpg" alt="Gorilla / Unga Bunga example" onerror="this.style.display='none'">
+          <div class="play-btn"></div>
+          <div class="yt-badge">▶ YOUTUBE</div>
+        </a>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>SF6 — "Online Ken Players" são Unga Bunga</span></div>
       </div>
     </section>
 
@@ -406,11 +446,13 @@ html,body{
       </div>
       <div class="video-panel">
         <div class="combo-mini">50%</div>
-        <div class="video-frame">
+        <a class="video-frame" href="https://www.youtube.com/shorts/ls_IxOuRppg" target="_blank" rel="noopener">
           <div class="cover-label">50/50</div>
-          <iframe src="https://www.youtube.com/embed/v2865t4Rb_4" title="50/50 mixup example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
-        <div class="video-tag">EXEMPLO EM VÍDEO · <span>Tekken 7 — Kazuya, o Rei do 50/50</span></div>
+          <img src="https://img.youtube.com/vi/ls_IxOuRppg/hqdefault.jpg" alt="50/50 mixup example" onerror="this.style.display='none'">
+          <div class="play-btn"></div>
+          <div class="yt-badge">▶ YOUTUBE</div>
+        </a>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>O mixup mais icônico da história do FGC (K-Brad)</span></div>
       </div>
     </section>
 
@@ -426,11 +468,13 @@ html,body{
       </div>
       <div class="video-panel">
         <div class="combo-mini">GG!</div>
-        <div class="video-frame">
+        <a class="video-frame" href="https://www.youtube.com/shorts/TuaKIWeTW9g" target="_blank" rel="noopener">
           <div class="cover-label">TEABAGGING</div>
-          <iframe src="https://www.youtube.com/embed/Wrdfw5hKWdM" title="Teabagging example" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
-        <div class="video-tag">EXEMPLO EM VÍDEO · <span>SFV — Teabagging in a Fighting Game</span></div>
+          <img src="https://img.youtube.com/vi/TuaKIWeTW9g/hqdefault.jpg" alt="Teabagging example" onerror="this.style.display='none'">
+          <div class="play-btn"></div>
+          <div class="yt-badge">▶ YOUTUBE</div>
+        </a>
+        <div class="video-tag">EXEMPLO EM VÍDEO · <span>SF6 — Teabagger leva a lição merecida</span></div>
       </div>
     </section>
 
