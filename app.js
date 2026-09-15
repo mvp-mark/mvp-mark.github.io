@@ -26,33 +26,124 @@
     }
   }
 
-  // Repairs common JSON authoring mistakes so JSON.parse can succeed.
-  function fixJsonText(text) {
-    let out = text;
+  // Strips line/block comments before lenient parsing.
+  function stripComments(text) {
+    return text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/.*$/gm, "$1");
+  }
 
-    // Strip line and block comments (outside of strings is not tracked
-    // precisely, but this covers the vast majority of real-world cases).
-    out = out.replace(/\/\*[\s\S]*?\*\//g, "");
-    out = out.replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const JSON_NUMBER_RE = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
 
-    // Python-style literals.
-    out = out.replace(/\bTrue\b/g, "true")
-             .replace(/\bFalse\b/g, "false")
-             .replace(/\bNone\b/g, "null");
+  function coerceBareToken(raw) {
+    const token = raw.trim();
+    if (token === "true" || token === "True") return true;
+    if (token === "false" || token === "False") return false;
+    if (token === "null" || token === "None") return null;
+    if (JSON_NUMBER_RE.test(token)) return Number(token);
+    return token; // leading zeros, dates, free text, etc. stay as strings
+  }
 
-    // Single-quoted strings -> double-quoted strings.
-    out = out.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, inner) => {
-      const escaped = inner.replace(/\\'/g, "'").replace(/"/g, '\\"');
-      return `"${escaped}"`;
-    });
+  // Tolerant parser for JSON-like text where keys and/or string values are
+  // missing quotes (e.g. {status:processando,created_at:2026-08-20T09:01:08Z}).
+  // Builds the JS value directly instead of trying to patch the text with
+  // regex, since bare values can themselves contain ':' (timestamps) or
+  // spaces/accents (free text) that a text-level fix can't disambiguate.
+  function parseLenient(text) {
+    const s = stripComments(text);
+    let i = 0;
 
-    // Unquoted object keys: { key: 1 } -> { "key": 1 }
-    out = out.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)(\s*:)/g, '$1"$2"$3');
+    function skipWs() {
+      while (i < s.length && /\s/.test(s[i])) i++;
+    }
 
-    // Trailing commas before a closing bracket.
-    out = out.replace(/,(\s*[}\]])/g, "$1");
+    function error(msg) {
+      throw new SyntaxError(`${msg} (posição ${i})`);
+    }
 
-    return out;
+    function readQuotedString(quote) {
+      let out = "";
+      i++; // opening quote
+      while (i < s.length && s[i] !== quote) {
+        if (s[i] === "\\" && i + 1 < s.length) {
+          out += s[i + 1] === quote ? quote : s[i] + s[i + 1];
+          i += 2;
+        } else {
+          out += s[i];
+          i++;
+        }
+      }
+      if (s[i] !== quote) error("String não terminada");
+      i++; // closing quote
+      return out;
+    }
+
+    function readBareUntil(stopChars) {
+      let start = i;
+      while (i < s.length && !stopChars.has(s[i])) i++;
+      return s.slice(start, i).trim();
+    }
+
+    function parseValue() {
+      skipWs();
+      const c = s[i];
+      if (c === "{") return parseObject();
+      if (c === "[") return parseArray();
+      if (c === '"' || c === "'") return readQuotedString(c);
+      const token = readBareUntil(new Set([",", "}", "]"]));
+      if (token === "") error("Valor esperado");
+      return coerceBareToken(token);
+    }
+
+    function parseKey() {
+      skipWs();
+      const c = s[i];
+      if (c === '"' || c === "'") return readQuotedString(c);
+      const token = readBareUntil(new Set([":"]));
+      if (token === "") error("Chave esperada");
+      return token;
+    }
+
+    function parseObject() {
+      const obj = {};
+      i++; // {
+      skipWs();
+      if (s[i] === "}") { i++; return obj; }
+      while (true) {
+        const key = parseKey();
+        skipWs();
+        if (s[i] !== ":") error("Esperado ':' após a chave");
+        i++;
+        const value = parseValue();
+        obj[key] = value;
+        skipWs();
+        if (s[i] === ",") { i++; skipWs(); if (s[i] === "}") { i++; break; } continue; }
+        if (s[i] === "}") { i++; break; }
+        error("Esperado ',' ou '}'");
+      }
+      return obj;
+    }
+
+    function parseArray() {
+      const arr = [];
+      i++; // [
+      skipWs();
+      if (s[i] === "]") { i++; return arr; }
+      while (true) {
+        arr.push(parseValue());
+        skipWs();
+        if (s[i] === ",") { i++; skipWs(); if (s[i] === "]") { i++; break; } continue; }
+        if (s[i] === "]") { i++; break; }
+        error("Esperado ',' ou ']'");
+      }
+      return arr;
+    }
+
+    skipWs();
+    const result = parseValue();
+    skipWs();
+    if (i < s.length) error("Conteúdo inesperado após o valor principal");
+    return result;
   }
 
   // Heuristic conformance checks against the raw (pre-fix) input.
@@ -109,15 +200,25 @@
     const spec = specEl.value;
     const shouldFix = fixEl.checked;
     const warnings = validateSpec(raw, spec);
-    const textToParse = shouldFix ? fixJsonText(raw) : raw;
 
     let parsed;
+    let usedFix = false;
     try {
-      parsed = JSON.parse(textToParse);
-    } catch (err) {
-      outputEl.value = "";
-      setStatus("Erro ao interpretar o JSON: " + err.message, "error");
-      return;
+      parsed = JSON.parse(raw);
+    } catch (strictErr) {
+      if (!shouldFix) {
+        outputEl.value = "";
+        setStatus("Erro ao interpretar o JSON: " + strictErr.message, "error");
+        return;
+      }
+      try {
+        parsed = parseLenient(raw);
+        usedFix = true;
+      } catch (lenientErr) {
+        outputEl.value = "";
+        setStatus("Erro ao interpretar o JSON: " + lenientErr.message, "error");
+        return;
+      }
     }
 
     const indent = indentFor(templateEl.value);
@@ -126,8 +227,8 @@
       : JSON.stringify(parsed, null, indent);
 
     const notes = [];
-    if (shouldFix && textToParse !== raw) {
-      notes.push("Correções automáticas aplicadas (Fix JSON).");
+    if (usedFix) {
+      notes.push("Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas finais etc.");
     }
     notes.push(...warnings);
 
