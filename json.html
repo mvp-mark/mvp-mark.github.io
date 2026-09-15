@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Formatter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="brand">JSON Formatter</h1>
+
+      <div class="field">
+        <label for="template">JSON Template</label>
+        <select id="template">
+          <option value="compact">Compact (no whitespace)</option>
+          <option value="1">1 Space Tab</option>
+          <option value="2">2 Space Tab</option>
+          <option value="3" selected>3 Space Tab</option>
+          <option value="4">4 Space Tab</option>
+          <option value="tab">Tab Character</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="spec">JSON Specification</label>
+        <select id="spec">
+          <option value="rfc8259" selected>RFC 8259</option>
+          <option value="rfc4627">RFC 4627</option>
+          <option value="ecma404">ECMA-404</option>
+          <option value="json5">JSON5</option>
+        </select>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="fixJson" checked>
+          <span>Fix JSON</span>
+        </label>
+        <button class="help-btn" id="fixHelpBtn" title="O que é Fix JSON?" aria-label="Ajuda sobre Fix JSON">?</button>
+      </div>
+
+      <div class="actions">
+        <button class="icon-btn" id="openFileBtn" title="Abrir arquivo">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4H2v16h20V6H12z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="clearBtn" title="Limpar">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+      </div>
+
+      <button class="format-btn" id="formatBtn">Formatar</button>
+
+      <div class="status" id="statusBox" hidden></div>
+    </aside>
+
+    <main class="editor">
+      <div class="panes">
+        <section class="pane">
+          <header>
+            <span>Entrada</span>
+          </header>
+          <textarea id="input" placeholder="Cole ou digite o JSON aqui..." spellcheck="false"></textarea>
+        </section>
+        <section class="pane">
+          <header>
+            <span>Saída</span>
+            <button class="copy-btn" id="copyBtn" title="Copiar saída">Copiar</button>
+          </header>
+          <textarea id="output" placeholder="O JSON formatado aparecerá aqui..." spellcheck="false" readonly></textarea>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="popover" id="fixHelpPopover" hidden>
+    <p><strong>Fix JSON</strong> tenta corrigir automaticamente problemas comuns antes de formatar:</p>
+    <ul>
+      <li>Vírgulas finais (trailing commas)</li>
+      <li>Aspas simples em vez de duplas</li>
+      <li>Chaves sem aspas</li>
+      <li>Comentários <code>//</code> e <code>/* */</code></li>
+      <li><code>True</code>/<code>False</code>/<code>None</code> (estilo Python)</li>
+    </ul>
+    <button id="fixHelpClose">Fechar</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
