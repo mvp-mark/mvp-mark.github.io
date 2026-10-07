@@ -54,6 +54,14 @@
       <button class="format-btn" id="formatBtn">Formatar</button>
 
       <div class="status" id="statusBox" hidden></div>
+
+      <div class="history">
+        <div class="history-header">
+          <span>Histórico</span>
+          <button class="history-clear-btn" id="historyClearBtn" title="Limpar histórico">Limpar</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
     </aside>
 
     <main class="editor">
@@ -83,6 +91,8 @@
       <li>Chaves sem aspas</li>
       <li>Comentários <code>//</code> e <code>/* */</code></li>
       <li><code>True</code>/<code>False</code>/<code>None</code> (estilo Python)</li>
+      <li>JSON inteiro entre aspas (<code>"{...}"</code>) ou serializado duas vezes</li>
+      <li>Valores vazios (<code>{texto:,...}</code> vira <code>""</code>)</li>
     </ul>
     <button id="fixHelpClose">Fechar</button>
   </div>
