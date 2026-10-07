@@ -13,6 +13,80 @@
   const fixHelpBtn = document.getElementById("fixHelpBtn");
   const fixHelpPopover = document.getElementById("fixHelpPopover");
   const fixHelpClose = document.getElementById("fixHelpClose");
+  const historyListEl = document.getElementById("historyList");
+  const historyClearBtn = document.getElementById("historyClearBtn");
+
+  const HISTORY_KEY = "jsonFormatter.history";
+  const HISTORY_LIMIT = 30;
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveHistory(entries) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    } catch {
+      // storage unavailable (private mode, quota) — history just won't persist
+    }
+  }
+
+  function addToHistory(entry) {
+    const entries = loadHistory();
+    entries.unshift(entry);
+    saveHistory(entries.slice(0, HISTORY_LIMIT));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const entries = loadHistory();
+    historyListEl.innerHTML = "";
+
+    if (entries.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "history-empty";
+      empty.textContent = "Nenhum JSON formatado ainda.";
+      historyListEl.appendChild(empty);
+      return;
+    }
+
+    entries.forEach((entry) => {
+      const li = document.createElement("li");
+      li.className = "history-item";
+      li.title = "Clique para recarregar";
+
+      const time = document.createElement("span");
+      time.className = "history-time";
+      time.textContent = new Date(entry.timestamp).toLocaleString("pt-BR");
+
+      const preview = document.createElement("span");
+      preview.className = "history-preview";
+      preview.textContent = entry.preview;
+
+      li.appendChild(time);
+      li.appendChild(preview);
+      li.addEventListener("click", () => {
+        inputEl.value = entry.input;
+        templateEl.value = entry.template;
+        specEl.value = entry.spec;
+        fixEl.checked = entry.fix;
+        outputEl.value = entry.output;
+        setStatus("Carregado do histórico.", "ok");
+      });
+
+      historyListEl.appendChild(li);
+    });
+  }
+
+  historyClearBtn.addEventListener("click", () => {
+    saveHistory([]);
+    renderHistory();
+  });
 
   function indentFor(template) {
     switch (template) {
@@ -84,14 +158,18 @@
       return s.slice(start, i).trim();
     }
 
-    function parseValue() {
+    // allowEmpty: object values like {texto:,a:1} become "" instead of failing.
+    function parseValue(allowEmpty) {
       skipWs();
       const c = s[i];
       if (c === "{") return parseObject();
       if (c === "[") return parseArray();
       if (c === '"' || c === "'") return readQuotedString(c);
       const token = readBareUntil(new Set([",", "}", "]"]));
-      if (token === "") error("Valor esperado");
+      if (token === "") {
+        if (allowEmpty) return "";
+        error("Valor esperado");
+      }
       return coerceBareToken(token);
     }
 
@@ -114,7 +192,7 @@
         skipWs();
         if (s[i] !== ":") error("Esperado ':' após a chave");
         i++;
-        const value = parseValue();
+        const value = parseValue(true);
         obj[key] = value;
         skipWs();
         if (s[i] === ",") { i++; skipWs(); if (s[i] === "}") { i++; break; } continue; }
@@ -144,6 +222,28 @@
     skipWs();
     if (i < s.length) error("Conteúdo inesperado após o valor principal");
     return result;
+  }
+
+  // Input wrapped in quotes ("{...}") or double-encoded JSON parses as a plain
+  // string; peel those layers off while the string still looks like an
+  // object/array. Returns the original value if no layer can be parsed.
+  function unwrapStringified(value, allowLenient) {
+    let unwrapped = false;
+    for (let depth = 0; depth < 5; depth++) {
+      if (typeof value !== "string" || !/^\s*[{\[]/.test(value)) break;
+      try {
+        value = JSON.parse(value);
+      } catch {
+        if (!allowLenient) break;
+        try {
+          value = parseLenient(value);
+        } catch {
+          break;
+        }
+      }
+      unwrapped = true;
+    }
+    return { value, unwrapped };
   }
 
   // Heuristic conformance checks against the raw (pre-fix) input.
@@ -221,6 +321,12 @@
       }
     }
 
+    const { value: inner, unwrapped } = unwrapStringified(parsed, shouldFix);
+    if (unwrapped) {
+      parsed = inner;
+      usedFix = true;
+    }
+
     const indent = indentFor(templateEl.value);
     outputEl.value = indent === null
       ? JSON.stringify(parsed)
@@ -233,7 +339,19 @@
     notes.push(...warnings);
 
     setStatus(notes.length ? notes.join("\n") : "JSON válido.", notes.length ? "error" : "ok");
+
+    addToHistory({
+      timestamp: Date.now(),
+      input: raw,
+      output: outputEl.value,
+      template: templateEl.value,
+      spec,
+      fix: shouldFix,
+      preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
+    });
   }
+
+  renderHistory();
 
   formatBtn.addEventListener("click", format);
   [templateEl, specEl, fixEl].forEach((el) =>
