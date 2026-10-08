@@ -15,9 +15,37 @@
   const fixHelpClose = document.getElementById("fixHelpClose");
   const historyListEl = document.getElementById("historyList");
   const historyClearBtn = document.getElementById("historyClearBtn");
+  const themeToggle = document.getElementById("themeToggle");
 
   const HISTORY_KEY = "jsonFormatter.history";
   const HISTORY_LIMIT = 30;
+  const THEME_KEY = "jsonFormatter.theme";
+
+  function applyTheme(theme) {
+    const selected = theme === "light" ? "light" : "dark";
+    document.body.dataset.theme = selected;
+    themeToggle.textContent = selected === "dark" ? "☀️ Light" : "🌙 Dark";
+    themeToggle.setAttribute("aria-label", selected === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    try {
+      localStorage.setItem(THEME_KEY, selected);
+    } catch {
+      // storage unavailable; ignore
+    }
+  }
+
+  const savedTheme = (() => {
+    try {
+      return localStorage.getItem(THEME_KEY) || "dark";
+    } catch {
+      return "dark";
+    }
+  })();
+
+  applyTheme(savedTheme);
+  themeToggle.addEventListener("click", () => {
+    const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme);
+  });
 
   function loadHistory() {
     try {

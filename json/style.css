@@ -1,4 +1,5 @@
 :root {
+  --bg: #eef2f6;
   --sidebar-bg: #2f74b5;
   --sidebar-bg-dark: #245a8f;
   --sidebar-fg: #ffffff;
@@ -9,6 +10,28 @@
   --accent: #2f74b5;
   --danger: #c0392b;
   --ok: #2e7d32;
+  --textarea-bg: #fafcfe;
+  --status-bg: rgba(0, 0, 0, 0.08);
+  --popover-bg: #ffffff;
+  --shadow: rgba(15, 23, 42, 0.18);
+}
+
+body[data-theme="dark"] {
+  --bg: #0f172a;
+  --sidebar-bg: #0b1220;
+  --sidebar-bg-dark: #111827;
+  --sidebar-fg: #e2e8f0;
+  --panel-bg: #111827;
+  --panel-fg: #e5edf9;
+  --border: #334155;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --danger: #fca5a5;
+  --ok: #86efac;
+  --textarea-bg: #0b1220;
+  --status-bg: rgba(148, 163, 184, 0.12);
+  --popover-bg: #111827;
+  --shadow: rgba(2, 6, 23, 0.7);
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +40,7 @@ html, body {
   margin: 0;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #eef2f6;
+  background: var(--bg);
   color: var(--panel-fg);
 }
 
@@ -44,6 +67,24 @@ html, body {
   margin: 0 0 6px;
 }
 
+.theme-toggle {
+  align-self: flex-start;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.08);
+  color: var(--sidebar-fg);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: rgba(255,255,255,0.18);
+  transform: translateY(-1px);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -58,9 +99,9 @@ html, body {
 
 .field select {
   appearance: none;
-  background: #ffffff;
+  background: var(--panel-bg);
   color: var(--panel-fg);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 8px 10px;
   font-size: 14px;
@@ -125,7 +166,7 @@ html, body {
 
 .format-btn {
   margin-top: auto;
-  background: #ffffff;
+  background: var(--panel-bg);
   color: var(--accent);
   border: none;
   border-radius: 6px;
@@ -136,13 +177,13 @@ html, body {
 }
 
 .format-btn:hover {
-  background: #f0f4f8;
+  filter: brightness(1.05);
 }
 
 .status {
   font-size: 12px;
   line-height: 1.4;
-  background: rgba(0,0,0,0.15);
+  background: var(--status-bg);
   border-radius: 6px;
   padding: 8px 10px;
   white-space: pre-wrap;
@@ -188,7 +229,7 @@ html, body {
 
 .copy-btn {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-bg);
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 12px;
@@ -196,7 +237,7 @@ html, body {
   color: var(--panel-fg);
 }
 
-.copy-btn:hover { background: #f4f7fa; }
+.copy-btn:hover { filter: brightness(1.08); }
 
 textarea {
   flex: 1;
@@ -208,10 +249,11 @@ textarea {
   line-height: 1.5;
   outline: none;
   color: var(--panel-fg);
+  background: var(--textarea-bg);
 }
 
 textarea#output {
-  background: #fafcfe;
+  background: var(--textarea-bg);
 }
 
 .popover {
@@ -219,10 +261,11 @@ textarea#output {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
+  background: var(--popover-bg);
   color: var(--panel-fg);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 30px var(--shadow);
   padding: 18px 20px;
   max-width: 340px;
   font-size: 13px;
