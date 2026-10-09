@@ -77,9 +77,13 @@
         <section class="pane">
           <header>
             <span>Saída</span>
-            <button class="copy-btn" id="copyBtn" title="Copiar saída">Copiar</button>
+            <div class="pane-actions">
+              <button class="copy-btn" id="expandAllBtn" title="Expandir todos os blocos">Expandir</button>
+              <button class="copy-btn" id="collapseAllBtn" title="Recolher todos os blocos">Recolher</button>
+              <button class="copy-btn" id="copyBtn" title="Copiar saída">Copiar</button>
+            </div>
           </header>
-          <textarea id="output" placeholder="O JSON formatado aparecerá aqui..." spellcheck="false" readonly></textarea>
+          <div class="json-view" id="output" data-placeholder="O JSON formatado aparecerá aqui..." role="region" aria-label="Saída formatada" tabindex="0"></div>
         </section>
       </div>
     </main>
@@ -100,5 +104,14 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {
+          // Offline cache registration is optional; app still works without it.
+        });
+      });
+    }
+  </script>
 </body>
 </html>

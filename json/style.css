@@ -1,4 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
 
 :root {
   --bg: #eef2f6;
@@ -16,6 +30,12 @@
   --status-bg: rgba(0, 0, 0, 0.08);
   --popover-bg: #ffffff;
   --shadow: rgba(15, 23, 42, 0.18);
+  --bracket-0: #b45309;
+  --bracket-1: #a21caf;
+  --bracket-2: #1d4ed8;
+  --bracket-3: #047857;
+  --bracket-4: #be123c;
+  --bracket-5: #6d28d9;
 }
 
 body[data-theme="dark"] {
@@ -34,6 +54,12 @@ body[data-theme="dark"] {
   --status-bg: rgba(148, 163, 184, 0.12);
   --popover-bg: #111827;
   --shadow: rgba(2, 6, 23, 0.7);
+  --bracket-0: #fbbf24;
+  --bracket-1: #e879f9;
+  --bracket-2: #60a5fa;
+  --bracket-3: #34d399;
+  --bracket-4: #fb7185;
+  --bracket-5: #a78bfa;
 }
 
 * { box-sizing: border-box; }
@@ -339,7 +365,13 @@ html, body {
 
 .copy-btn:hover { filter: brightness(1.08); }
 
-textarea {
+.pane-actions {
+  display: flex;
+  gap: 6px;
+}
+
+textarea,
+.json-view {
   flex: 1;
   border: none;
   resize: none;
@@ -353,9 +385,84 @@ textarea {
   background: var(--textarea-bg);
 }
 
-textarea#output {
-  background: var(--textarea-bg);
+.json-view {
+  overflow: auto;
+  padding-left: 30px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
 }
+
+.json-view:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+.jv-line { position: relative; }
+
+.jv-bracket {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.jv-depth-0 { color: var(--bracket-0); }
+.jv-depth-1 { color: var(--bracket-1); }
+.jv-depth-2 { color: var(--bracket-2); }
+.jv-depth-3 { color: var(--bracket-3); }
+.jv-depth-4 { color: var(--bracket-4); }
+.jv-depth-5 { color: var(--bracket-5); }
+
+/* The button itself is zero-width and inline so it never adds a line break
+   to selected/copied text; only its arrow is drawn, out in the gutter. */
+.jv-toggle {
+  display: inline;
+  width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.jv-toggle::before {
+  content: "\25BE";
+  position: absolute;
+  top: 0;
+  left: -24px;
+  width: 18px;
+  height: 1.6em;
+  line-height: 1.6em;
+  text-align: center;
+  border-radius: 3px;
+  color: var(--muted);
+}
+
+.jv-collapsed > .jv-toggle::before { content: "\25B8"; }
+
+.jv-toggle:hover::before,
+.jv-toggle:focus-visible::before {
+  color: var(--panel-fg);
+  background: var(--status-bg);
+}
+
+.jv-toggle:focus-visible { outline: none; }
+
+.jv-summary {
+  display: none;
+  margin: 0 4px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--status-bg);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.jv-collapsed > .jv-summary { display: inline; }
+.jv-collapsed > .jv-children,
+.jv-collapsed > .jv-close-indent { display: none; }
 
 .popover {
   position: fixed;

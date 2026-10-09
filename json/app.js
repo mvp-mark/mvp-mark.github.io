@@ -10,6 +10,8 @@
   const openFileBtn = document.getElementById("openFileBtn");
   const fileInput = document.getElementById("fileInput");
   const copyBtn = document.getElementById("copyBtn");
+  const expandAllBtn = document.getElementById("expandAllBtn");
+  const collapseAllBtn = document.getElementById("collapseAllBtn");
   const fixHelpBtn = document.getElementById("fixHelpBtn");
   const fixHelpPopover = document.getElementById("fixHelpPopover");
   const fixHelpClose = document.getElementById("fixHelpClose");
@@ -20,6 +22,10 @@
   const HISTORY_KEY = "jsonFormatter.history";
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
+  const BRACKET_COLOR_COUNT = 6;
+
+  // Plain-text version of what the output view shows (used by copy/history).
+  let outputText = "";
 
   function applyTheme(theme) {
     const selected = theme === "light" ? "light" : "dark";
@@ -103,7 +109,11 @@
         templateEl.value = entry.template;
         specEl.value = entry.spec;
         fixEl.checked = entry.fix;
-        outputEl.value = entry.output;
+        try {
+          showOutput(JSON.parse(entry.output), indentFor(entry.template));
+        } catch {
+          clearOutput();
+        }
         setStatus("Carregado do histórico.", "ok");
       });
 
@@ -305,6 +315,124 @@
     return warnings;
   }
 
+  function bracket(char, depth) {
+    const span = document.createElement("span");
+    span.className = `jv-bracket jv-depth-${depth % BRACKET_COLOR_COUNT}`;
+    span.textContent = char;
+    return span;
+  }
+
+  // Renders value so its text matches JSON.stringify(value, null, indent)
+  // exactly (selecting and copying from the view yields the same JSON), with
+  // each non-empty object/array wrapped in a collapsible .jv-node.
+  function renderValue(parent, value, indent, depth) {
+    if (value === null || typeof value !== "object") {
+      parent.append(JSON.stringify(value));
+      return;
+    }
+
+    const isArray = Array.isArray(value);
+    const entries = isArray ? value.map((v) => [null, v]) : Object.entries(value);
+    const [open, close] = isArray ? ["[", "]"] : ["{", "}"];
+    if (entries.length === 0) {
+      parent.append(bracket(open, depth), bracket(close, depth));
+      return;
+    }
+
+    const pretty = indent !== null;
+    const node = document.createElement("span");
+    node.className = "jv-node";
+    node.dataset.depth = depth;
+
+    if (pretty) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "jv-toggle";
+      toggle.setAttribute("aria-label", "Recolher/expandir bloco");
+      toggle.setAttribute("aria-expanded", "true");
+      node.appendChild(toggle);
+    }
+    node.appendChild(bracket(open, depth));
+
+    const n = entries.length;
+    const summary = document.createElement("span");
+    summary.className = "jv-summary";
+    summary.textContent = isArray
+      ? `${n} ${n === 1 ? "item" : "itens"}`
+      : `${n} ${n === 1 ? "chave" : "chaves"}`;
+    node.appendChild(summary);
+
+    const children = document.createElement(pretty ? "div" : "span");
+    children.className = "jv-children";
+    entries.forEach(([key, child], idx) => {
+      const line = document.createElement(pretty ? "div" : "span");
+      line.className = "jv-line";
+      if (pretty) line.append(indent.repeat(depth + 1));
+      if (key !== null) {
+        line.append(JSON.stringify(key) + (pretty ? ": " : ":"));
+      }
+      renderValue(line, child, indent, depth + 1);
+      if (idx < n - 1) line.append(",");
+      children.appendChild(line);
+    });
+    node.appendChild(children);
+
+    if (pretty) {
+      const closeIndent = document.createElement("span");
+      closeIndent.className = "jv-close-indent";
+      closeIndent.textContent = indent.repeat(depth);
+      node.appendChild(closeIndent);
+    }
+    node.appendChild(bracket(close, depth));
+    parent.appendChild(node);
+  }
+
+  function showOutput(value, indent) {
+    outputText = indent === null ? JSON.stringify(value) : JSON.stringify(value, null, indent);
+    const root = document.createElement("div");
+    root.className = "jv-line";
+    renderValue(root, value, indent, 0);
+    outputEl.replaceChildren(root);
+  }
+
+  function clearOutput() {
+    outputText = "";
+    outputEl.replaceChildren();
+  }
+
+  function setCollapsed(node, collapsed) {
+    node.classList.toggle("jv-collapsed", collapsed);
+    const toggle = node.querySelector(":scope > .jv-toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", String(!collapsed));
+  }
+
+  // Click the arrow, a bracket or the "N chaves" summary to fold/unfold.
+  // Alt+click applies the same state to every nested block.
+  outputEl.addEventListener("click", (e) => {
+    const target = e.target.closest(".jv-toggle, .jv-bracket, .jv-summary");
+    if (!target) return;
+    // Empty {} / [] brackets sit directly in a line, not in their own node.
+    const node = target.parentElement;
+    if (!node.classList.contains("jv-node")) return;
+    // Don't fold when the user is drag-selecting text across a bracket.
+    if (!target.classList.contains("jv-toggle") && !window.getSelection().isCollapsed) return;
+
+    const collapsed = !node.classList.contains("jv-collapsed");
+    setCollapsed(node, collapsed);
+    if (e.altKey) {
+      node.querySelectorAll(".jv-node").forEach((child) => setCollapsed(child, collapsed));
+    }
+  });
+
+  expandAllBtn.addEventListener("click", () => {
+    outputEl.querySelectorAll(".jv-node").forEach((node) => setCollapsed(node, false));
+  });
+
+  // Keeps the root open so the top-level keys stay visible.
+  collapseAllBtn.addEventListener("click", () => {
+    outputEl.querySelectorAll(".jv-node").forEach((node) => setCollapsed(node, node.dataset.depth !== "0"));
+  });
+
   function setStatus(message, kind) {
     if (!message) {
       statusEl.hidden = true;
@@ -320,7 +448,7 @@
   function format() {
     const raw = inputEl.value;
     if (!raw.trim()) {
-      outputEl.value = "";
+      clearOutput();
       setStatus("");
       return;
     }
@@ -335,7 +463,7 @@
       parsed = JSON.parse(raw);
     } catch (strictErr) {
       if (!shouldFix) {
-        outputEl.value = "";
+        clearOutput();
         setStatus("Erro ao interpretar o JSON: " + strictErr.message, "error");
         return;
       }
@@ -343,7 +471,7 @@
         parsed = parseLenient(raw);
         usedFix = true;
       } catch (lenientErr) {
-        outputEl.value = "";
+        clearOutput();
         setStatus("Erro ao interpretar o JSON: " + lenientErr.message, "error");
         return;
       }
@@ -355,10 +483,7 @@
       usedFix = true;
     }
 
-    const indent = indentFor(templateEl.value);
-    outputEl.value = indent === null
-      ? JSON.stringify(parsed)
-      : JSON.stringify(parsed, null, indent);
+    showOutput(parsed, indentFor(templateEl.value));
 
     const notes = [];
     if (usedFix) {
@@ -371,7 +496,7 @@
     addToHistory({
       timestamp: Date.now(),
       input: raw,
-      output: outputEl.value,
+      output: outputText,
       template: templateEl.value,
       spec,
       fix: shouldFix,
@@ -390,7 +515,7 @@
 
   clearBtn.addEventListener("click", () => {
     inputEl.value = "";
-    outputEl.value = "";
+    clearOutput();
     setStatus("");
     inputEl.focus();
   });
@@ -409,14 +534,18 @@
   });
 
   copyBtn.addEventListener("click", async () => {
-    if (!outputEl.value) return;
+    if (!outputText) return;
     try {
-      await navigator.clipboard.writeText(outputEl.value);
+      await navigator.clipboard.writeText(outputText);
       copyBtn.textContent = "Copiado!";
       setTimeout(() => (copyBtn.textContent = "Copiar"), 1200);
     } catch {
-      outputEl.select();
+      const tmp = document.createElement("textarea");
+      tmp.value = outputText;
+      document.body.appendChild(tmp);
+      tmp.select();
       document.execCommand("copy");
+      tmp.remove();
     }
   });
 
@@ -425,7 +554,7 @@
 
   inputEl.addEventListener("input", () => {
     if (!inputEl.value.trim()) {
-      outputEl.value = "";
+      clearOutput();
       setStatus("");
     }
   });
