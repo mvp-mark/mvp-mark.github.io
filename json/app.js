@@ -1,5 +1,6 @@
 (function () {
   const inputEl = document.getElementById("input");
+  const inputHighlightEl = document.getElementById("inputHighlight");
   const outputEl = document.getElementById("output");
   const templateEl = document.getElementById("template");
   const specEl = document.getElementById("spec");
@@ -52,6 +53,93 @@
     const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
     applyTheme(nextTheme);
   });
+
+  // Colored brackets in the input: the textarea's text is transparent and a
+  // <pre> behind it shows the same text with brackets colored by depth
+  // (unmatched ones in red). Scroll and size are kept in sync.
+  const HIGHLIGHT_MAX_CHARS = 300000;
+  let highlightQueued = false;
+
+  function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Depth per bracket as in renderValue; a closer that skips open brackets
+  // closes its match and the skipped ones (never closed) are marked bad, as
+  // are closers with nothing to close.
+  function classifyBrackets(brackets) {
+    const stack = [];
+    const out = brackets.map((b) => ({ ...b, depth: 0, bad: false }));
+    out.forEach((b) => {
+      if (CLOSER[b.char]) {
+        b.depth = stack.length;
+        stack.push(b);
+        return;
+      }
+      let k = stack.length - 1;
+      while (k >= 0 && CLOSER[stack[k].char] !== b.char) k--;
+      if (k < 0) {
+        b.bad = true;
+        return;
+      }
+      while (stack.length - 1 > k) stack.pop().bad = true;
+      b.depth = stack.pop().depth;
+    });
+    stack.forEach((b) => (b.bad = true));
+    return out;
+  }
+
+  function syncHighlightBox() {
+    // clientWidth/Height exclude the textarea's scrollbar, so the text wraps
+    // at the same width in both layers.
+    inputHighlightEl.style.width = inputEl.clientWidth + "px";
+    inputHighlightEl.style.height = inputEl.clientHeight + "px";
+    inputHighlightEl.scrollTop = inputEl.scrollTop;
+    inputHighlightEl.scrollLeft = inputEl.scrollLeft;
+  }
+
+  function renderInputHighlight() {
+    highlightQueued = false;
+    const text = inputEl.value;
+    // A trailing space keeps a final empty line the same height as in the textarea.
+    if (text.length > HIGHLIGHT_MAX_CHARS) {
+      inputHighlightEl.textContent = text + " ";
+    } else {
+      let html = "";
+      let from = 0;
+      classifyBrackets(scanBrackets(text)).forEach((b) => {
+        const cls = b.bad ? "hl-bad" : `jv-depth-${b.depth % BRACKET_COLOR_COUNT}`;
+        html += escapeHtml(text.slice(from, b.pos)) + `<span class="${cls}">${b.char}</span>`;
+        from = b.pos + 1;
+      });
+      inputHighlightEl.innerHTML = html + escapeHtml(text.slice(from)) + " ";
+    }
+    syncHighlightBox();
+  }
+
+  function queueInputHighlight() {
+    if (highlightQueued) return;
+    highlightQueued = true;
+    requestAnimationFrame(renderInputHighlight);
+  }
+
+  // The value is also set from code (history, file, clear, fixes); hook the
+  // setter so every change is highlighted without touching each call site.
+  const textareaValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+  Object.defineProperty(inputEl, "value", {
+    get() {
+      return textareaValue.get.call(this);
+    },
+    set(text) {
+      textareaValue.set.call(this, text);
+      queueInputHighlight();
+    },
+  });
+
+  inputEl.addEventListener("input", queueInputHighlight);
+  inputEl.addEventListener("scroll", syncHighlightBox);
+  new ResizeObserver(syncHighlightBox).observe(inputEl);
+  queueInputHighlight();
 
   function loadHistory() {
     try {
@@ -279,23 +367,32 @@
   // object/array. Returns the original value if no layer can be parsed; with
   // allowLenient, a layer that fails is reported in `error` ({ source, pos,
   // message }, pos relative to that layer's text).
+  // A layer fixed by repairNestedKeys is returned in `repaired` (with
+  // `source`, that layer's text).
   function unwrapStringified(value, allowLenient) {
     let unwrapped = false;
+    let repaired = null;
     for (let depth = 0; depth < 5; depth++) {
       if (typeof value !== "string" || !/^\s*[{\[]/.test(value)) break;
       try {
         value = JSON.parse(value);
       } catch {
         if (!allowLenient) break;
-        try {
-          value = parseLenient(value);
-        } catch (err) {
-          return { value, unwrapped, error: { source: value, pos: err.pos ?? null, message: err.message } };
+        const fix = repairNestedKeys(value, true);
+        if (fix) {
+          repaired = { ...fix, source: value };
+          value = fix.value;
+        } else {
+          try {
+            value = parseLenient(value);
+          } catch (err) {
+            return { value, unwrapped, error: { source: value, pos: err.pos ?? null, message: err.message } };
+          }
         }
       }
       unwrapped = true;
     }
-    return { value, unwrapped };
+    return { value, unwrapped, repaired };
   }
 
   const CLOSER = { "{": "}", "[": "]" };
@@ -514,9 +611,9 @@
     const marks = new Map();
     inserts.forEach((ins) => {
       const path = containerPath(fixed, shift(ins.open), usedLenient);
-      if (path) marks.set(JSON.stringify(path), ins.char);
+      if (path) marks.set(JSON.stringify(path), { label: `← '${ins.char}' adicionado (faltava)`, openAdded: false });
     });
-    return { inserts: [...inserts].sort((a, b) => a.open - b.open), fixed, value, marks, usedLenient };
+    return { inserts: [...inserts].sort((a, b) => a.open - b.open), fixed, value, marks, usedLenient, shift };
   }
 
   // Missing closers fixed automatically: each one is added at the end of the
@@ -530,6 +627,184 @@
     const spots = (r) => JSON.stringify(r.inserts.map((ins) => [ins.open, ins.pos]));
     closed.alternative = byIndent && spots(byIndent) !== spots(closed) ? byIndent : null;
     return closed;
+  }
+
+  function displayKey(raw) {
+    const t = raw.trim();
+    return /^["']/.test(t) ? `"${t.slice(1, -1)}"` : `"${t}"`;
+  }
+
+  // First place where an object key gets another key as its value, as in
+  // `teste: teste1: "teste2"` (should be `teste: {teste1: "teste2"}`).
+  // Returns { start, end, outerKey, innerKey }: the inner key..value span
+  // that needs { } around it. A bare inner key only counts when its value is
+  // quoted or a {...}/[...] (so `msg: Total: 5`, `url: http://...` and times
+  // like 09:01:08 stay plain text); a quoted one always counts.
+  function findNestedKey(text) {
+    const skipWs = (k) => {
+      while (k < text.length && /\s/.test(text[k])) k++;
+      return k;
+    };
+    const endOfQuoted = (k) => {
+      const q = text[k];
+      k++;
+      while (k < text.length && text[k] !== q && text[k] !== "\n") k += text[k] === "\\" ? 2 : 1;
+      return text[k] === q ? k + 1 : -1;
+    };
+    const endOfBracket = (k) => {
+      let depth = 0;
+      for (; k < text.length; k++) {
+        const c = text[k];
+        if (c === '"' || c === "'") {
+          const e = endOfQuoted(k);
+          if (e < 0) return -1;
+          k = e - 1;
+        } else if (c === "{" || c === "[") {
+          depth++;
+        } else if (c === "}" || c === "]") {
+          depth--;
+          if (depth === 0) return k + 1;
+        }
+      }
+      return -1;
+    };
+    const valueEnd = (k) => {
+      if (text[k] === "{" || text[k] === "[") return endOfBracket(k);
+      if (text[k] === '"' || text[k] === "'") return endOfQuoted(k);
+      let e = k;
+      while (e < text.length && !",}]\n".includes(text[e])) e++;
+      while (e > k && /\s/.test(text[e - 1])) e--;
+      return e > k ? e : -1;
+    };
+    // Is there "key: value" starting at k? Then where does it end.
+    const nestedAt = (k) => {
+      const quoted = text[k] === '"' || text[k] === "'";
+      let keyEnd = -1;
+      if (quoted) {
+        keyEnd = endOfQuoted(k);
+      } else {
+        const m = /^[A-Za-z_$][\w$-]*/.exec(text.slice(k, k + 200));
+        if (m) keyEnd = k + m[0].length;
+      }
+      if (keyEnd < 0) return null;
+      const colon = skipWs(keyEnd);
+      if (text[colon] !== ":") return null;
+      const v = skipWs(colon + 1);
+      if (text.startsWith("//", v)) return null; // http://...
+      const inner = nestedAt(v);
+      if (!quoted && !inner && !`"'{[`.includes(text[v] ?? "x")) return null;
+      const end = inner ? inner.end : valueEnd(v);
+      return end < 0 ? null : { start: k, end, innerKey: displayKey(text.slice(k, keyEnd)) };
+    };
+
+    const frames = [];
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const top = frames[frames.length - 1];
+      if (c === '"' || c === "'") {
+        const e = endOfQuoted(i);
+        const nl = text.indexOf("\n", i);
+        i = e >= 0 ? e - 1 : nl < 0 ? text.length : nl;
+      } else if (c === "/" && text[i + 1] === "*") {
+        const end = text.indexOf("*/", i + 2);
+        i = end < 0 ? text.length : end + 1;
+      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
+        const end = text.indexOf("\n", i);
+        i = end < 0 ? text.length : end;
+      } else if (c === "{" || c === "[") {
+        frames.push({ obj: c === "{", colon: false, keyStart: i + 1 });
+      } else if (c === "}" || c === "]") {
+        frames.pop();
+      } else if (c === "," && top && top.obj) {
+        top.colon = false;
+        top.keyStart = i + 1;
+      } else if (c === ":" && top && top.obj && !top.colon) {
+        top.colon = true;
+        const spot = nestedAt(skipWs(i + 1));
+        if (spot) return { ...spot, outerKey: displayKey(text.slice(top.keyStart, i)) };
+      }
+    }
+    return null;
+  }
+
+  // Wraps every key-valued key in { } (see findNestedKey), then parses,
+  // adding missing closers too if needed. When a '}' with no opener comes
+  // after the spot, the '{' is what's missing: only '{' is added and that
+  // '}' closes the new object (openerOnly). If that reading doesn't parse,
+  // both braces are tried. Returns { value, usedLenient, fixed, spots,
+  // closed, marks } or null if there's nothing to wrap or it still fails.
+  function repairNestedKeys(text, lenient) {
+    return wrapNestedKeys(text, lenient, true) ?? wrapNestedKeys(text, lenient, false);
+  }
+
+  function wrapNestedKeys(text, lenient, allowOpenerOnly) {
+    let fixed = text;
+    const spots = [];
+    for (let n = 0; n < 100; n++) {
+      const spot = findNestedKey(fixed);
+      if (!spot) break;
+      const openerOnly = allowOpenerOnly && classifyBrackets(scanBrackets(fixed))
+        .some((b) => b.bad && b.char === "}" && b.pos > spot.start);
+      spots.forEach((s) => {
+        s.pos += (s.pos >= spot.start ? 1 : 0) + (!openerOnly && s.pos >= spot.end ? 1 : 0);
+      });
+      fixed = openerOnly
+        ? fixed.slice(0, spot.start) + "{" + fixed.slice(spot.start)
+        : fixed.slice(0, spot.start) + "{" + fixed.slice(spot.start, spot.end) + "}" + fixed.slice(spot.end);
+      spots.push({
+        pos: spot.start,
+        line: lineCol(fixed, spot.start).line,
+        outerKey: spot.outerKey,
+        innerKey: spot.innerKey,
+        openerOnly,
+      });
+    }
+    if (!spots.length) return null;
+
+    let value;
+    let parsed = false;
+    let usedLenient = false;
+    let closed = null;
+    try {
+      value = JSON.parse(fixed);
+      parsed = true;
+    } catch {
+      if (lenient) {
+        try {
+          value = parseLenient(fixed);
+          parsed = true;
+          usedLenient = true;
+        } catch {
+          // fall through to adding missing closers
+        }
+      }
+    }
+    if (!parsed) {
+      closed = autoCloseBrackets(fixed, lenient);
+      if (!closed) return null;
+      ({ value, usedLenient } = closed);
+    }
+
+    const finalText = closed ? closed.fixed : fixed;
+    const shift = closed ? closed.shift : (pos) => pos;
+    const marks = closed ? new Map(closed.marks) : new Map();
+    spots.forEach((s) => {
+      const path = containerPath(finalText, shift(s.pos), usedLenient);
+      if (!path) return;
+      marks.set(JSON.stringify(path), s.openerOnly
+        ? { label: "← '{' adicionado (faltava abrir)", openAdded: true, closeAdded: false }
+        : { label: "← '{ }' adicionados", openAdded: true });
+    });
+    return { value, usedLenient, fixed: finalText, spots, closed, marks };
+  }
+
+  // `"{...}"` whose inner quotes aren't escaped isn't a valid string; with
+  // Fix JSON the text inside the outer quotes is read instead.
+  function brokenWrapperInner(raw) {
+    const start = raw.search(/\S/);
+    const text = raw.trim();
+    if (!/^(["'])[{\[][\s\S]*[}\]]\1$/.test(text)) return null;
+    return { text: text.slice(1, -1), offset: start + 1 };
   }
 
   // For the error view, when closing at the end doesn't produce valid JSON
@@ -762,10 +1037,12 @@
   // Renders value so its text matches JSON.stringify(value, null, indent)
   // exactly (selecting and copying from the view yields the same JSON), with
   // each non-empty object/array wrapped in a collapsible .jv-node.
-  // marks (optional): Map of JSON.stringify(path) -> closing char, for
-  // containers whose closing bracket was missing in the input; their brackets
-  // are highlighted and a label element is returned for the caller to place
-  // at the end of the line (after any comma).
+  // marks (optional): Map of JSON.stringify(path) -> { label, openAdded,
+  // closeAdded }, for containers whose brackets were added by an automatic
+  // fix: the added brackets are highlighted (an existing opener only
+  // outlined). The label goes next to the opener when only the opener was
+  // added; otherwise it's returned for the caller to place at the end of the
+  // closer's line (after any comma).
   function renderValue(parent, value, indent, depth, path = [], marks = null) {
     if (value === null || typeof value !== "object") {
       parent.append(JSON.stringify(value));
@@ -775,14 +1052,15 @@
     const isArray = Array.isArray(value);
     const entries = isArray ? value.map((v) => [null, v]) : Object.entries(value);
     const [open, close] = isArray ? ["[", "]"] : ["{", "}"];
-    const missing = marks !== null && marks.has(JSON.stringify(path));
+    const mark = marks === null ? undefined : marks.get(JSON.stringify(path));
     const openEl = bracket(open, depth);
     const closeEl = bracket(close, depth);
-    if (missing) {
-      openEl.classList.add("jv-unclosed");
-      closeEl.classList.add("jv-missing");
+    if (mark) {
+      openEl.classList.add(mark.openAdded ? "jv-missing" : "jv-unclosed");
+      if (mark.closeAdded !== false) closeEl.classList.add("jv-missing");
     }
-    const label = missing ? span("jv-missing-label", `← '${close}' adicionado (faltava)`) : null;
+    const label = mark ? span("jv-missing-label", mark.label) : null;
+    const labelAtOpen = mark !== undefined && mark.closeAdded === false;
 
     if (entries.length === 0) {
       parent.append(openEl, closeEl);
@@ -803,6 +1081,7 @@
       node.appendChild(toggle);
     }
     node.appendChild(openEl);
+    if (labelAtOpen) node.appendChild(label);
 
     const n = entries.length;
     const summary = document.createElement("span");
@@ -837,7 +1116,7 @@
     }
     node.appendChild(closeEl);
     parent.appendChild(node);
-    return label;
+    return labelAtOpen ? null : label;
   }
 
   // marks: see renderValue (closers that were added automatically).
@@ -946,32 +1225,73 @@
     format();
   }
 
-  // Warning shown above the output when missing closers were added
-  // automatically. Returns { banner, summary } (summary goes to the status).
-  function renderAutoCloseBanner(source, offset, closed) {
+  // Shows the output of an automatically fixed text (key-valued keys wrapped
+  // in { }, missing closers added) with a warning above it listing what was
+  // changed. fix: { value, marks, fixed, spots?, closed? }; source/offset as
+  // in showBracketRepair. Returns the summary for the status box.
+  function showFixedOutput(fix, source, offset) {
+    const spots = fix.spots ?? [];
+    const closed = fix.closed ?? null;
     const input = inputEl.value;
     const shown = offset >= 0 ? input : source;
     const toShown = (pos) => (offset >= 0 ? offset + pos : pos);
+    const lineShift = offset > 0 ? lineCol(input, offset).line - 1 : 0;
     const opener = (ins) => (ins.char === "}" ? "{" : "[");
     const openAt = (ins) => lineCol(shown, toShown(ins.open));
-    const { inserts, alternative } = closed;
+    // An indentation-based alternative only makes sense for closers alone.
+    const alternative = spots.length ? null : closed?.alternative ?? null;
+
+    const items = [];
+    const summary = [];
+    spots.forEach((sp) => {
+      items.push(sp.openerOnly
+        ? `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor (${sp.innerKey}) ` +
+          `e faltava abrir o '{': coloquei o '{' antes de ${sp.innerKey} (o '}' que fecha já estava lá).`
+        : `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor (${sp.innerKey}) ` +
+          `sem '{ }': ficou ${sp.outerKey}: { ${sp.innerKey}: … }.`);
+    });
+    if (spots.length === 1) {
+      const sp = spots[0];
+      summary.push(sp.openerOnly
+        ? `Faltava abrir o '{' no valor da chave ${sp.outerKey} (linha ${sp.line + lineShift}), que recebia outra chave; coloquei o '{'.`
+        : `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor; coloquei '{ }' em volta.`);
+    } else if (spots.length) {
+      summary.push(`${spots.length} chaves recebiam outra chave como valor; coloquei as chaves que faltavam.`);
+    }
+    if (closed) {
+      closed.inserts.forEach((ins) => {
+        const at = openAt(ins);
+        items.push(`O '${opener(ins)}' da linha ${at.line}, coluna ${at.col} não tinha fechamento; ` +
+          `o '${ins.char}' foi adicionado ${ins.where}.`);
+      });
+      const first = closed.inserts[0];
+      summary.push(closed.inserts.length === 1
+        ? `Faltava fechar o '${opener(first)}' da linha ${openAt(first).line}: o '${first.char}' foi adicionado ${first.where}.`
+        : `Faltavam ${closed.inserts.length} fechamentos; foram adicionados automaticamente.`);
+    }
+
+    let titleText;
+    if (spots.length && closed) titleText = "Corrigi o JSON automaticamente";
+    else if (spots.length === 1 && spots[0].openerOnly) titleText = `Faltava abrir um '{': a chave ${spots[0].outerKey} recebia outra chave como valor`;
+    else if (spots.length === 1) titleText = "Uma chave recebia outra chave como valor: coloquei as '{ }'";
+    else if (spots.length) titleText = `${spots.length} chaves recebiam outra chave como valor: corrigi as chaves`;
+    else if (closed.inserts.length === 1) titleText = `Faltava fechar um '${opener(closed.inserts[0])}': fechei automaticamente`;
+    else titleText = `Faltavam ${closed.inserts.length} fechamentos: fechei automaticamente`;
+
+    showOutput(fix.value, indentFor(templateEl.value), fix.marks);
 
     const banner = document.createElement("div");
     banner.className = "jv-warning";
     const title = document.createElement("div");
     title.className = "jv-warning-title";
-    title.textContent = inserts.length === 1
-      ? `Faltava fechar um '${opener(inserts[0])}': fechei automaticamente`
-      : `Faltavam ${inserts.length} fechamentos: fechei automaticamente`;
+    title.textContent = titleText;
     banner.appendChild(title);
 
     const list = document.createElement("ul");
     list.className = "jv-error-list";
-    inserts.forEach((ins) => {
-      const at = openAt(ins);
+    items.forEach((text) => {
       const li = document.createElement("li");
-      li.textContent = `O '${opener(ins)}' da linha ${at.line}, coluna ${at.col} não tinha fechamento; ` +
-        `o '${ins.char}' foi adicionado ${ins.where}.`;
+      li.textContent = text;
       list.appendChild(li);
     });
     banner.appendChild(list);
@@ -987,7 +1307,7 @@
 
     const note = document.createElement("div");
     note.className = "jv-error-note";
-    note.textContent = "Confira se o fechamento ficou no lugar certo (destacado abaixo). A entrada não foi alterada.";
+    note.textContent = "Confira se a correção ficou certa (destacada abaixo). A entrada não foi alterada.";
     banner.appendChild(note);
 
     const actions = document.createElement("div");
@@ -1000,16 +1320,12 @@
       btn.addEventListener("click", () => applyFixToInput(input, source, offset, fixed));
       actions.appendChild(btn);
     };
-    addButton(inserts.length === 1 ? "Inserir o fechamento na entrada" : "Inserir os fechamentos na entrada", closed.fixed);
+    addButton("Aplicar a correção na entrada", fix.fixed);
     if (alternative) addButton("Inserir onde a indentação indica", alternative.fixed);
     banner.appendChild(actions);
 
-    const first = inserts[0];
-    const summary = (inserts.length === 1
-      ? `Faltava fechar o '${opener(first)}' da linha ${openAt(first).line}: o '${first.char}' foi adicionado ${first.where}.`
-      : `Faltavam ${inserts.length} fechamentos; foram adicionados automaticamente.`) +
-      (alternative ? " Pela indentação, o lugar certo parece ser outro (veja na saída)." : " Confira na saída.");
-    return { banner, summary };
+    outputEl.prepend(banner);
+    return summary.join(" ") + (alternative ? " Pela indentação, o lugar certo parece ser outro (veja na saída)." : " Confira na saída.");
   }
 
   // Missing closing bracket(s): explains which bracket was left open and
@@ -1376,26 +1692,27 @@
     const shouldFix = fixEl.checked;
     const warnings = validateSpec(raw, spec);
 
+    const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas finais etc.";
+
+    // Output shown: status notes, then history.
+    const finish = (notes, ok) => {
+      setStatus(notes.length ? notes.join("\n") : "JSON válido.", ok && !notes.length ? "ok" : "error");
+      addToHistory({
+        timestamp: Date.now(),
+        input: raw,
+        output: outputText,
+        template: templateEl.value,
+        spec,
+        fix: shouldFix,
+        preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
+      });
+    };
+
     const fail = (source, info, offset) => {
       const closed = autoCloseBrackets(source, shouldFix);
       if (closed) {
-        showOutput(closed.value, indentFor(templateEl.value), closed.marks);
-        const { banner, summary } = renderAutoCloseBanner(source, offset, closed);
-        outputEl.prepend(banner);
-        const notes = [summary];
-        if (closed.usedLenient || source !== raw) {
-          notes.push("Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas finais etc.");
-        }
-        setStatus([...notes, ...warnings].join("\n"), "error");
-        addToHistory({
-          timestamp: Date.now(),
-          input: raw,
-          output: outputText,
-          template: templateEl.value,
-          spec,
-          fix: shouldFix,
-          preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
-        });
+        const summary = showFixedOutput({ value: closed.value, marks: closed.marks, fixed: closed.fixed, closed }, source, offset);
+        finish([summary, ...(closed.usedLenient || source !== raw ? [FIX_NOTE] : []), ...warnings], false);
         return;
       }
       if (!reformatted && reformatInputForEditing(raw, source, offset)) {
@@ -1406,25 +1723,38 @@
       if (reformatted) addReformatNote(reformatted.unwrapped);
     };
 
-    let parsed;
-    let usedFix = false;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (strictErr) {
-      if (!shouldFix) {
-        fail(raw, strictErrorInfo(raw, strictErr), 0);
-        return;
-      }
+    // Reads `source` (the input, or the text inside quotes wrapping it).
+    // Returns { value, usedFix, repaired? } or null after reporting the error.
+    const read = (source, offset) => {
       try {
-        parsed = parseLenient(raw);
-        usedFix = true;
-      } catch (lenientErr) {
-        fail(raw, { pos: lenientErr.pos ?? null, message: lenientErr.message }, 0);
-        return;
+        return { value: JSON.parse(source), usedFix: source !== raw };
+      } catch (strictErr) {
+        const repaired = repairNestedKeys(source, shouldFix);
+        if (repaired) {
+          return { value: repaired.value, usedFix: repaired.usedLenient || source !== raw, repaired: { ...repaired, source, offset } };
+        }
+        if (!shouldFix) {
+          fail(source, strictErrorInfo(source, strictErr), offset);
+          return null;
+        }
+        try {
+          return { value: parseLenient(source), usedFix: true };
+        } catch (lenientErr) {
+          const wrapped = source === raw ? brokenWrapperInner(raw) : null;
+          if (wrapped) return read(wrapped.text, wrapped.offset);
+          fail(source, { pos: lenientErr.pos ?? null, message: lenientErr.message }, offset);
+          return null;
+        }
       }
-    }
+    };
 
-    const { value: inner, unwrapped, error } = unwrapStringified(parsed, shouldFix);
+    const result = read(raw, 0);
+    if (!result) return;
+    let parsed = result.value;
+    let usedFix = result.usedFix;
+    let repaired = result.repaired ?? null;
+
+    const { value: inner, unwrapped, error, repaired: layerRepair } = unwrapStringified(parsed, shouldFix);
     if (error) {
       // When the quoted text appears verbatim in the input (no escapes),
       // point at the real spot in the input instead of inside the string.
@@ -1435,26 +1765,17 @@
       parsed = inner;
       usedFix = true;
     }
-
-    showOutput(parsed, indentFor(templateEl.value));
+    if (layerRepair) repaired = { ...layerRepair, value: parsed, offset: raw.indexOf(layerRepair.source) };
 
     const notes = [];
-    if (usedFix) {
-      notes.push("Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas finais etc.");
+    if (repaired) {
+      notes.push(showFixedOutput({ ...repaired, value: parsed }, repaired.source, repaired.offset));
+    } else {
+      showOutput(parsed, indentFor(templateEl.value));
     }
+    if (usedFix) notes.push(FIX_NOTE);
     notes.push(...warnings);
-
-    setStatus(notes.length ? notes.join("\n") : "JSON válido.", notes.length ? "error" : "ok");
-
-    addToHistory({
-      timestamp: Date.now(),
-      input: raw,
-      output: outputText,
-      template: templateEl.value,
-      spec,
-      fix: shouldFix,
-      preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
-    });
+    finish(notes, !repaired);
   }
 
   renderHistory();
