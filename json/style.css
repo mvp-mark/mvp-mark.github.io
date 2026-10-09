@@ -493,6 +493,71 @@ textarea,
   cursor: pointer;
 }
 
+.json-view.has-error { padding-left: 14px; }
+
+.jv-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  white-space: normal;
+  font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.jv-error-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.jv-error-msg {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.jv-error-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.jv-error-code {
+  overflow-x: auto;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.jv-error-row {
+  width: max-content;
+  min-width: 100%;
+  padding: 0 12px;
+}
+
+.jv-error-line { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+
+.jv-error-num {
+  margin-right: 14px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.jv-error-char {
+  border-radius: 2px;
+  background: var(--danger);
+  color: var(--panel-bg);
+}
+
+.jv-error-caret {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.jv-error-jump { align-self: flex-start; }
+
 @media (max-width: 720px) {
   .app { flex-direction: column; height: auto; min-height: 100vh; }
   .sidebar { width: 100%; }
