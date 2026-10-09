@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="JSON Formatter favicon">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <path d="M42 28c-12 0-22 10-22 22v8c0 9-7 16-16 16h-2v12h2c9 0 16 7 16 16v8c0 12 10 22 22 22h8v-12h-8c-6 0-10-4-10-10v-8c0-14-11-25-25-25v-12c14 0 25-11 25-25v-8c0-6 4-10 10-10h8V28h-8zm44 0h-8v12h8c6 0 10 4 10 10v8c0 14 11 25 25 25v12c-14 0-25 11-25 25v8c0 6-4 10-10 10h-8v12h8c12 0 22-10 22-22v-8c0-9 7-16 16-16h2v-12h-2c-9 0-16-7-16-16v-8c0-12-10-22-22-22z" fill="#f8fafc" opacity="0.95"/>
+  <path d="M52 35h24v58H52zm0 0h24v58H52z" fill="#60a5fa" opacity="0.15"/>
+  <path d="M56 41h16v46H56zm0 0h16v46H56z" fill="#f8fafc" opacity="0.95"/>
+  <path d="M48 41h32v8H48zm0 46h32v8H48z" fill="#93c5fd" opacity="0.7"/>
+</svg>
