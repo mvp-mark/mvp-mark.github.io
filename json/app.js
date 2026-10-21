@@ -422,6 +422,35 @@
     return found;
   }
 
+  // Rows copied from a database come as {...} {...} {...} (one object per
+  // row, no surrounding array). Returns that text as "[{...},{...}]", or null
+  // unless it is 2+ top-level objects/arrays separated only by spaces/commas.
+  function wrapConcatenated(text) {
+    const chunks = [];
+    let depth = 0;
+    let start = 0;
+    let last = 0;
+    for (const { char, pos } of scanBrackets(text)) {
+      if (char === "{" || char === "[") {
+        if (depth === 0) {
+          if (/[^\s,]/.test(stripComments(text.slice(last, pos)))) return null;
+          start = pos;
+        }
+        depth++;
+      } else {
+        if (depth === 0) return null;
+        depth--;
+        if (depth === 0) {
+          chunks.push(text.slice(start, pos + 1));
+          last = pos + 1;
+        }
+      }
+    }
+    if (depth !== 0 || chunks.length < 2) return null;
+    if (/[^\s,]/.test(stripComments(text.slice(last)))) return null;
+    return "[\n" + chunks.join(",\n") + "\n]";
+  }
+
   // Pretty-printed input: a bracket that ends its line should be closed by
   // the first later line indented no deeper than the bracket's own line. If
   // that line doesn't start with the matching closer, the closer is missing
@@ -1729,6 +1758,18 @@
       try {
         return { value: JSON.parse(source), usedFix: source !== raw };
       } catch (strictErr) {
+        const list = shouldFix ? wrapConcatenated(source) : null;
+        if (list) {
+          try {
+            return { value: JSON.parse(list), usedFix: true, joined: true };
+          } catch {
+            try {
+              return { value: parseLenient(list), usedFix: true, joined: true };
+            } catch {
+              // fall through: report the error against the original text
+            }
+          }
+        }
         const repaired = repairNestedKeys(source, shouldFix);
         if (repaired) {
           return { value: repaired.value, usedFix: repaired.usedLenient || source !== raw, repaired: { ...repaired, source, offset } };
@@ -1768,6 +1809,7 @@
     if (layerRepair) repaired = { ...layerRepair, value: parsed, offset: raw.indexOf(layerRepair.source) };
 
     const notes = [];
+    if (result.joined) notes.push(`${parsed.length} objetos separados foram agrupados em um array.`);
     if (repaired) {
       notes.push(showFixedOutput({ ...repaired, value: parsed }, repaired.source, repaired.offset));
     } else {
