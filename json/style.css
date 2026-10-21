@@ -36,6 +36,12 @@
   --bracket-3: #047857;
   --bracket-4: #ea580c;
   --bracket-5: #6d28d9;
+  --syn-key: #0451a5;
+  --syn-str: #a31515;
+  --syn-num: #098658;
+  --syn-bool: #0000ff;
+  --syn-null: #af00db;
+  --syn-comment: #008000;
 }
 
 body[data-theme="dark"] {
@@ -60,6 +66,106 @@ body[data-theme="dark"] {
   --bracket-3: #34d399;
   --bracket-4: #fb923c;
   --bracket-5: #a78bfa;
+  --syn-key: #9cdcfe;
+  --syn-str: #ce9178;
+  --syn-num: #b5cea8;
+  --syn-bool: #569cd6;
+  --syn-null: #c586c0;
+  --syn-comment: #6a9955;
+}
+
+/* Syntax color schemes ("Cores do JSON"). The light values apply to the
+   light theme; the [data-theme="dark"] rule wins in the dark theme. */
+body[data-syntax="github"] {
+  --syn-key: #116329;
+  --syn-str: #0a3069;
+  --syn-num: #0550ae;
+  --syn-bool: #cf222e;
+  --syn-null: #8250df;
+  --syn-comment: #6e7781;
+}
+
+body[data-theme="dark"][data-syntax="github"] {
+  --syn-key: #7ee787;
+  --syn-str: #a5d6ff;
+  --syn-num: #79c0ff;
+  --syn-bool: #ff7b72;
+  --syn-null: #d2a8ff;
+  --syn-comment: #8b949e;
+}
+
+body[data-syntax="monokai"] {
+  --syn-key: #0e7c99;
+  --syn-str: #7a6f00;
+  --syn-num: #7c4dff;
+  --syn-bool: #c25e00;
+  --syn-null: #d0175a;
+  --syn-comment: #8a8670;
+}
+
+body[data-theme="dark"][data-syntax="monokai"] {
+  --syn-key: #66d9ef;
+  --syn-str: #e6db74;
+  --syn-num: #ae81ff;
+  --syn-bool: #fd971f;
+  --syn-null: #f92672;
+  --syn-comment: #75715e;
+}
+
+body[data-syntax="dracula"] {
+  --syn-key: #036a96;
+  --syn-str: #846e15;
+  --syn-num: #644ac9;
+  --syn-bool: #a3144d;
+  --syn-null: #a34d14;
+  --syn-comment: #6c664b;
+}
+
+body[data-theme="dark"][data-syntax="dracula"] {
+  --syn-key: #8be9fd;
+  --syn-str: #f1fa8c;
+  --syn-num: #bd93f9;
+  --syn-bool: #ff79c6;
+  --syn-null: #ffb86c;
+  --syn-comment: #6272a4;
+}
+
+body[data-syntax="solarized"] {
+  --syn-key: #1f6fb0;
+  --syn-str: #1d7f78;
+  --syn-num: #b52d70;
+  --syn-bool: #627000;
+  --syn-null: #ad3f11;
+  --syn-comment: #7f8c8d;
+}
+
+body[data-theme="dark"][data-syntax="solarized"] {
+  --syn-key: #268bd2;
+  --syn-str: #2aa198;
+  --syn-num: #d33682;
+  --syn-bool: #859900;
+  --syn-null: #cb4b16;
+  --syn-comment: #93a1a1;
+}
+
+body[data-syntax="none"] {
+  --syn-key: var(--panel-fg);
+  --syn-str: var(--panel-fg);
+  --syn-num: var(--panel-fg);
+  --syn-bool: var(--panel-fg);
+  --syn-null: var(--panel-fg);
+  --syn-comment: var(--muted);
+}
+
+/* "Colchetes coloridos" off: brackets in the text color. Must come after
+   the theme rules, which set the same variables with equal specificity. */
+body[data-rainbow="off"] {
+  --bracket-0: var(--panel-fg);
+  --bracket-1: var(--panel-fg);
+  --bracket-2: var(--panel-fg);
+  --bracket-3: var(--panel-fg);
+  --bracket-4: var(--panel-fg);
+  --bracket-5: var(--panel-fg);
 }
 
 * { box-sizing: border-box; }
@@ -90,6 +196,9 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
 
 .brand {
@@ -137,6 +246,20 @@ html, body {
   border-radius: 4px;
   padding: 8px 10px;
   font-size: 14px;
+}
+
+.syntax-preview {
+  margin-top: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--textarea-bg);
+  color: var(--panel-fg);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .checkbox-field {
@@ -459,6 +582,13 @@ textarea,
 .jv-depth-3 { color: var(--bracket-3); }
 .jv-depth-4 { color: var(--bracket-4); }
 .jv-depth-5 { color: var(--bracket-5); }
+
+.jv-key { color: var(--syn-key); }
+.jv-str { color: var(--syn-str); }
+.jv-num { color: var(--syn-num); }
+.jv-bool { color: var(--syn-bool); }
+.jv-null { color: var(--syn-null); }
+.jv-comment { color: var(--syn-comment); }
 
 /* The button itself is zero-width and inline so it never adds a line break
    to selected/copied text; only its arrow is drawn, out in the gutter. */

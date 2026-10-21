@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-theme="dark">
+<body data-theme="dark" data-syntax="default" data-rainbow="on">
   <div class="app">
     <aside class="sidebar">
       <h1 class="brand">JSON Formatter</h1>
@@ -33,6 +33,26 @@
           <option value="ecma404">ECMA-404</option>
           <option value="json5">JSON5</option>
         </select>
+      </div>
+
+      <div class="field">
+        <label for="syntaxTheme">Cores do JSON</label>
+        <select id="syntaxTheme">
+          <option value="default" selected>Padrão (VS Code)</option>
+          <option value="github">GitHub</option>
+          <option value="monokai">Monokai</option>
+          <option value="dracula">Dracula</option>
+          <option value="solarized">Solarized</option>
+          <option value="none">Sem cores</option>
+        </select>
+        <div class="syntax-preview" aria-hidden="true"><span class="jv-bracket jv-depth-0">{</span><span class="jv-key">"nome"</span>: <span class="jv-str">"Ana"</span>, <span class="jv-key">"idade"</span>: <span class="jv-num">31</span>, <span class="jv-key">"ativo"</span>: <span class="jv-bool">true</span>, <span class="jv-key">"tags"</span>: <span class="jv-bracket jv-depth-1">[</span><span class="jv-null">null</span><span class="jv-bracket jv-depth-1">]</span><span class="jv-bracket jv-depth-0">}</span></div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rainbowBrackets" checked>
+          <span>Colchetes coloridos</span>
+        </label>
       </div>
 
       <div class="field checkbox-field">

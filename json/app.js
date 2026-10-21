@@ -19,10 +19,14 @@
   const historyListEl = document.getElementById("historyList");
   const historyClearBtn = document.getElementById("historyClearBtn");
   const themeToggle = document.getElementById("themeToggle");
+  const syntaxThemeEl = document.getElementById("syntaxTheme");
+  const rainbowEl = document.getElementById("rainbowBrackets");
 
   const HISTORY_KEY = "jsonFormatter.history";
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
+  const SYNTAX_KEY = "jsonFormatter.syntax";
+  const RAINBOW_KEY = "jsonFormatter.rainbow";
   const BRACKET_COLOR_COUNT = 6;
 
   // Plain-text version of what the output view shows (used by copy/history).
@@ -54,10 +58,49 @@
     applyTheme(nextTheme);
   });
 
-  // Colored brackets in the input: the textarea's text is transparent and a
-  // <pre> behind it shows the same text with brackets colored by depth
-  // (unmatched ones in red). Scroll and size are kept in sync.
+  // Syntax colors ("Cores do JSON") and rainbow brackets are pure CSS,
+  // switched by data-syntax / data-rainbow on <body>.
+  function readSetting(key, fallback) {
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function storeSetting(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // storage unavailable; ignore
+    }
+  }
+
+  function applySyntaxTheme(name) {
+    const known = [...syntaxThemeEl.options].some((o) => o.value === name);
+    const selected = known ? name : "default";
+    document.body.dataset.syntax = selected;
+    syntaxThemeEl.value = selected;
+    storeSetting(SYNTAX_KEY, selected);
+  }
+
+  function applyRainbow(on) {
+    document.body.dataset.rainbow = on ? "on" : "off";
+    rainbowEl.checked = on;
+    storeSetting(RAINBOW_KEY, on ? "on" : "off");
+  }
+
+  applySyntaxTheme(readSetting(SYNTAX_KEY, "default"));
+  applyRainbow(readSetting(RAINBOW_KEY, "on") !== "off");
+  syntaxThemeEl.addEventListener("change", () => applySyntaxTheme(syntaxThemeEl.value));
+  rainbowEl.addEventListener("change", () => applyRainbow(rainbowEl.checked));
+
+  // Colored input: the textarea's text is transparent and a <pre> behind it
+  // shows the same text with brackets colored by depth (unmatched ones in
+  // red) plus keys/values colored by kind. Scroll and size are kept in sync.
   const HIGHLIGHT_MAX_CHARS = 300000;
+  // Above this, only brackets are colored (one span per token gets slow).
+  const TOKEN_HIGHLIGHT_MAX_CHARS = 100000;
   let highlightQueued = false;
 
   function escapeHtml(text) {
@@ -105,12 +148,20 @@
     if (text.length > HIGHLIGHT_MAX_CHARS) {
       inputHighlightEl.textContent = text + " ";
     } else {
+      const brackets = classifyBrackets(scanBrackets(text)).map((b) => ({
+        pos: b.pos,
+        end: b.pos + 1,
+        cls: b.bad ? "hl-bad" : `jv-depth-${b.depth % BRACKET_COLOR_COUNT}`,
+      }));
+      const tokens = text.length > TOKEN_HIGHLIGHT_MAX_CHARS
+        ? []
+        : scanTokens(text).map((t) => ({ pos: t.pos, end: t.end, cls: `jv-${t.kind}` }));
+      // Brackets are never inside a token, so the two lists don't overlap.
       let html = "";
       let from = 0;
-      classifyBrackets(scanBrackets(text)).forEach((b) => {
-        const cls = b.bad ? "hl-bad" : `jv-depth-${b.depth % BRACKET_COLOR_COUNT}`;
-        html += escapeHtml(text.slice(from, b.pos)) + `<span class="${cls}">${b.char}</span>`;
-        from = b.pos + 1;
+      [...brackets, ...tokens].sort((a, b) => a.pos - b.pos).forEach((m) => {
+        html += escapeHtml(text.slice(from, m.pos)) + `<span class="${m.cls}">${escapeHtml(text.slice(m.pos, m.end))}</span>`;
+        from = m.end;
       });
       inputHighlightEl.innerHTML = html + escapeHtml(text.slice(from)) + " ";
     }
@@ -418,6 +469,56 @@
       } else if (c === "{" || c === "[" || c === "}" || c === "]") {
         found.push({ char: c, pos: i });
       }
+    }
+    return found;
+  }
+
+  // Strings, bare words and comments for the input's syntax colors, with the
+  // same string/comment rules as scanBrackets: [{ kind, pos, end }], kind
+  // being key/str/num/bool/null/comment. A string or bare word followed by
+  // ":" is a key; other bare words (Python-style ones included) are colored
+  // only when they are numbers or keywords.
+  const BARE_WORD = /[A-Za-z0-9_$.+-]+/y;
+  const NUMBER_WORD = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$|^0[xX][0-9a-fA-F]+$/;
+  const KEYWORD_KIND = new Map([
+    ["true", "bool"], ["false", "bool"], ["True", "bool"], ["False", "bool"],
+    ["null", "null"], ["None", "null"],
+  ]);
+
+  function scanTokens(text) {
+    const found = [];
+    const followedByColon = (end) => {
+      while (end < text.length && /\s/.test(text[end])) end++;
+      return text[end] === ":";
+    };
+    for (let i = 0; i < text.length; ) {
+      const c = text[i];
+      let end = i + 1;
+      let kind = null;
+      if (c === '"' || c === "'") {
+        while (end < text.length && text[end] !== c && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
+        end = Math.min(text[end] === c ? end + 1 : end, text.length);
+        kind = followedByColon(end) ? "key" : "str";
+      } else if (c === "/" && text[i + 1] === "*") {
+        const close = text.indexOf("*/", i + 2);
+        end = close < 0 ? text.length : close + 2;
+        kind = "comment";
+      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
+        const close = text.indexOf("\n", i);
+        end = close < 0 ? text.length : close;
+        kind = "comment";
+      } else {
+        BARE_WORD.lastIndex = i;
+        const word = BARE_WORD.exec(text);
+        if (word) {
+          end = i + word[0].length;
+          if (followedByColon(end)) kind = "key";
+          else if (NUMBER_WORD.test(word[0])) kind = "num";
+          else kind = KEYWORD_KIND.get(word[0]) ?? null;
+        }
+      }
+      if (kind) found.push({ kind, pos: i, end });
+      i = end;
     }
     return found;
   }
@@ -1056,6 +1157,14 @@
     return warnings;
   }
 
+  // Syntax color class suffix (jv-str, jv-num...) for a non-container value.
+  function primitiveKind(value) {
+    if (value === null) return "null";
+    if (typeof value === "string") return "str";
+    if (typeof value === "boolean") return "bool";
+    return "num";
+  }
+
   function bracket(char, depth) {
     const span = document.createElement("span");
     span.className = `jv-bracket jv-depth-${depth % BRACKET_COLOR_COUNT}`;
@@ -1074,7 +1183,7 @@
   // closer's line (after any comma).
   function renderValue(parent, value, indent, depth, path = [], marks = null) {
     if (value === null || typeof value !== "object") {
-      parent.append(JSON.stringify(value));
+      parent.append(span(`jv-${primitiveKind(value)}`, JSON.stringify(value)));
       return null;
     }
 
@@ -1127,7 +1236,7 @@
       line.className = "jv-line";
       if (pretty) line.append(indent.repeat(depth + 1));
       if (key !== null) {
-        line.append(JSON.stringify(key) + (pretty ? ": " : ":"));
+        line.append(span("jv-key", JSON.stringify(key)), pretty ? ": " : ":");
       }
       const childPath = marks === null ? path : [...path, isArray ? idx : key];
       const childLabel = renderValue(line, child, indent, depth + 1, childPath, marks);
