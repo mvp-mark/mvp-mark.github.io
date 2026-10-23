@@ -1,3 +1,25 @@
+import {
+  RawNumber,
+  autoCloseBrackets,
+  brokenWrapperInner,
+  classifyBrackets,
+  formatLoose,
+  insertCommas,
+  isHardToEdit,
+  lineCol,
+  parseJson,
+  parseLenient,
+  repairNestedKeys,
+  scanBrackets,
+  scanTokens,
+  strictErrorInfo,
+  stringify,
+  suggestBracketRepair,
+  unwrapStringified,
+  validateSpec,
+  wrapConcatenated,
+} from "./parser.js";
+
 (function () {
   const inputEl = document.getElementById("input");
   const inputHighlightEl = document.getElementById("inputHighlight");
@@ -29,7 +51,7 @@
   const RAINBOW_KEY = "jsonFormatter.rainbow";
   const BRACKET_COLOR_COUNT = 6;
 
-  // Plain-text version of what the output view shows (used by copy/history).
+  // Plain-text version of what the output view shows (used by copy).
   let outputText = "";
 
   function applyTheme(theme) {
@@ -107,31 +129,6 @@
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  // Depth per bracket as in renderValue; a closer that skips open brackets
-  // closes its match and the skipped ones (never closed) are marked bad, as
-  // are closers with nothing to close.
-  function classifyBrackets(brackets) {
-    const stack = [];
-    const out = brackets.map((b) => ({ ...b, depth: 0, bad: false }));
-    out.forEach((b) => {
-      if (CLOSER[b.char]) {
-        b.depth = stack.length;
-        stack.push(b);
-        return;
-      }
-      let k = stack.length - 1;
-      while (k >= 0 && CLOSER[stack[k].char] !== b.char) k--;
-      if (k < 0) {
-        b.bad = true;
-        return;
-      }
-      while (stack.length - 1 > k) stack.pop().bad = true;
-      b.depth = stack.pop().depth;
-    });
-    stack.forEach((b) => (b.bad = true));
-    return out;
-  }
-
   function syncHighlightBox() {
     // clientWidth/Height exclude the textarea's scrollbar, so the text wraps
     // at the same width in both layers.
@@ -194,25 +191,32 @@
 
   function loadHistory() {
     try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const entries = JSON.parse(localStorage.getItem(HISTORY_KEY));
+      return Array.isArray(entries) ? entries : [];
     } catch {
       return [];
     }
   }
 
+  // False when storage is unavailable (private mode) or full.
   function saveHistory(entries) {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+      return true;
     } catch {
-      // storage unavailable (private mode, quota) — history just won't persist
+      return false;
     }
   }
 
+  // Most recent first, one entry per input (formatting the same text again,
+  // e.g. after changing the indentation, just moves it to the top). When
+  // storage is full the oldest entries are dropped; an input too big to fit
+  // even alone is left out rather than wiping the rest.
   function addToHistory(entry) {
-    const entries = loadHistory();
-    entries.unshift(entry);
-    saveHistory(entries.slice(0, HISTORY_LIMIT));
+    const entries = [entry, ...loadHistory().filter((e) => e.input !== entry.input)].slice(0, HISTORY_LIMIT);
+    for (let n = entries.length; n > 0; n--) {
+      if (saveHistory(entries.slice(0, n))) break;
+    }
     renderHistory();
   }
 
@@ -243,17 +247,14 @@
 
       li.appendChild(time);
       li.appendChild(preview);
+      // The output isn't stored (it would double the size); formatting the
+      // input again with the same settings gives it back.
       li.addEventListener("click", () => {
         inputEl.value = entry.input;
         templateEl.value = entry.template;
         specEl.value = entry.spec;
         fixEl.checked = entry.fix;
-        try {
-          showOutput(JSON.parse(entry.output), indentFor(entry.template));
-        } catch {
-          clearOutput();
-        }
-        setStatus("Carregado do histórico.", "ok");
+        format();
       });
 
       historyListEl.appendChild(li);
@@ -277,889 +278,10 @@
     }
   }
 
-  // Blanks out line/block comments before lenient parsing. Comments become
-  // spaces (newlines kept) so error positions still match the original text.
-  function stripComments(text) {
-    return text
-      .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
-      .replace(/(^|[^:])(\/\/.*)$/gm, (_, before, comment) => before + " ".repeat(comment.length));
-  }
-
-  const JSON_NUMBER_RE = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
-
-  function coerceBareToken(raw) {
-    const token = raw.trim();
-    if (token === "true" || token === "True") return true;
-    if (token === "false" || token === "False") return false;
-    if (token === "null" || token === "None") return null;
-    if (JSON_NUMBER_RE.test(token)) return Number(token);
-    return token; // leading zeros, dates, free text, etc. stay as strings
-  }
-
-  // Tolerant parser for JSON-like text where keys and/or string values are
-  // missing quotes (e.g. {status:processando,created_at:2026-08-20T09:01:08Z}).
-  // Builds the JS value directly instead of trying to patch the text with
-  // regex, since bare values can themselves contain ':' (timestamps) or
-  // spaces/accents (free text) that a text-level fix can't disambiguate.
-  function parseLenient(text) {
-    const s = stripComments(text);
-    let i = 0;
-
-    function skipWs() {
-      while (i < s.length && /\s/.test(s[i])) i++;
-    }
-
-    function error(msg, pos = i) {
-      const err = new SyntaxError(msg);
-      err.pos = pos;
-      throw err;
-    }
-
-    function found() {
-      return i >= s.length ? "o fim do texto" : `'${s[i]}'`;
-    }
-
-    function readQuotedString(quote) {
-      let out = "";
-      const start = i;
-      i++; // opening quote
-      while (i < s.length && s[i] !== quote) {
-        if (s[i] === "\\" && i + 1 < s.length) {
-          out += s[i + 1] === quote ? quote : s[i] + s[i + 1];
-          i += 2;
-        } else {
-          out += s[i];
-          i++;
-        }
-      }
-      if (s[i] !== quote) error("Esta string nunca foi fechada (falta a aspa final).", start);
-      i++; // closing quote
-      return out;
-    }
-
-    function readBareUntil(stopChars) {
-      let start = i;
-      while (i < s.length && !stopChars.has(s[i])) i++;
-      return s.slice(start, i).trim();
-    }
-
-    // allowEmpty: object values like {texto:,a:1} become "" instead of failing.
-    function parseValue(allowEmpty) {
-      skipWs();
-      const c = s[i];
-      if (c === "{") return parseObject();
-      if (c === "[") return parseArray();
-      if (c === '"' || c === "'") return readQuotedString(c);
-      const token = readBareUntil(new Set([",", "}", "]"]));
-      if (token === "") {
-        if (allowEmpty) return "";
-        error(`Valor esperado, mas encontrou ${found()}.`);
-      }
-      return coerceBareToken(token);
-    }
-
-    function parseKey() {
-      skipWs();
-      const c = s[i];
-      if (c === '"' || c === "'") return readQuotedString(c);
-      const token = readBareUntil(new Set([":"]));
-      if (token === "") error(`Chave esperada, mas encontrou ${found()}.`);
-      return token;
-    }
-
-    function parseObject() {
-      const obj = {};
-      const open = i;
-      i++; // {
-      skipWs();
-      if (s[i] === "}") { i++; return obj; }
-      while (true) {
-        const key = parseKey();
-        skipWs();
-        if (s[i] !== ":") error(`Esperado ':' depois da chave, mas encontrou ${found()}.`);
-        i++;
-        const value = parseValue(true);
-        obj[key] = value;
-        skipWs();
-        if (s[i] === ",") { i++; skipWs(); if (s[i] === "}") { i++; break; } continue; }
-        if (s[i] === "}") { i++; break; }
-        if (i >= s.length) error("Este '{' nunca foi fechado (falta o '}').", open);
-        error(`Esperado ',' ou '}', mas encontrou ${found()}.`);
-      }
-      return obj;
-    }
-
-    function parseArray() {
-      const arr = [];
-      const open = i;
-      i++; // [
-      skipWs();
-      if (s[i] === "]") { i++; return arr; }
-      while (true) {
-        arr.push(parseValue());
-        skipWs();
-        if (s[i] === ",") { i++; skipWs(); if (s[i] === "]") { i++; break; } continue; }
-        if (s[i] === "]") { i++; break; }
-        if (i >= s.length) error("Este '[' nunca foi fechado (falta o ']').", open);
-        error(`Esperado ',' ou ']', mas encontrou ${found()}.`);
-      }
-      return arr;
-    }
-
-    skipWs();
-    const result = parseValue();
-    skipWs();
-    if (i < s.length) error(`Conteúdo extra depois do fim do JSON, começando em ${found()}.`);
-    return result;
-  }
-
-  // Input wrapped in quotes ("{...}") or double-encoded JSON parses as a plain
-  // string; peel those layers off while the string still looks like an
-  // object/array. Returns the original value if no layer can be parsed; with
-  // allowLenient, a layer that fails is reported in `error` ({ source, pos,
-  // message }, pos relative to that layer's text).
-  // A layer fixed by repairNestedKeys is returned in `repaired` (with
-  // `source`, that layer's text).
-  function unwrapStringified(value, allowLenient) {
-    let unwrapped = false;
-    let repaired = null;
-    for (let depth = 0; depth < 5; depth++) {
-      if (typeof value !== "string" || !/^\s*[{\[]/.test(value)) break;
-      try {
-        value = JSON.parse(value);
-      } catch {
-        if (!allowLenient) break;
-        const fix = repairNestedKeys(value, true);
-        if (fix) {
-          repaired = { ...fix, source: value };
-          value = fix.value;
-        } else {
-          try {
-            value = parseLenient(value);
-          } catch (err) {
-            return { value, unwrapped, error: { source: value, pos: err.pos ?? null, message: err.message } };
-          }
-        }
-      }
-      unwrapped = true;
-    }
-    return { value, unwrapped, repaired };
-  }
-
-  const CLOSER = { "{": "}", "[": "]" };
-
-  // Brackets outside strings and comments, in order: [{ char, pos }].
-  // Strings stop at a line break so one missing quote doesn't hide the rest.
-  function scanBrackets(text) {
-    const found = [];
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (c === '"' || c === "'") {
-        i++;
-        while (i < text.length && text[i] !== c && text[i] !== "\n") {
-          if (text[i] === "\\") i++;
-          i++;
-        }
-      } else if (c === "/" && text[i + 1] === "*") {
-        const end = text.indexOf("*/", i + 2);
-        i = end < 0 ? text.length : end + 1;
-      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
-        const end = text.indexOf("\n", i);
-        i = end < 0 ? text.length : end;
-      } else if (c === "{" || c === "[" || c === "}" || c === "]") {
-        found.push({ char: c, pos: i });
-      }
-    }
-    return found;
-  }
-
-  // Strings, bare words and comments for the input's syntax colors, with the
-  // same string/comment rules as scanBrackets: [{ kind, pos, end }], kind
-  // being key/str/num/bool/null/comment. A string or bare word followed by
-  // ":" is a key; other bare words (Python-style ones included) are colored
-  // only when they are numbers or keywords.
-  const BARE_WORD = /[A-Za-z0-9_$.+-]+/y;
-  const NUMBER_WORD = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$|^0[xX][0-9a-fA-F]+$/;
-  const KEYWORD_KIND = new Map([
-    ["true", "bool"], ["false", "bool"], ["True", "bool"], ["False", "bool"],
-    ["null", "null"], ["None", "null"],
-  ]);
-
-  function scanTokens(text) {
-    const found = [];
-    const followedByColon = (end) => {
-      while (end < text.length && /\s/.test(text[end])) end++;
-      return text[end] === ":";
-    };
-    for (let i = 0; i < text.length; ) {
-      const c = text[i];
-      let end = i + 1;
-      let kind = null;
-      if (c === '"' || c === "'") {
-        while (end < text.length && text[end] !== c && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
-        end = Math.min(text[end] === c ? end + 1 : end, text.length);
-        kind = followedByColon(end) ? "key" : "str";
-      } else if (c === "/" && text[i + 1] === "*") {
-        const close = text.indexOf("*/", i + 2);
-        end = close < 0 ? text.length : close + 2;
-        kind = "comment";
-      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
-        const close = text.indexOf("\n", i);
-        end = close < 0 ? text.length : close;
-        kind = "comment";
-      } else {
-        BARE_WORD.lastIndex = i;
-        const word = BARE_WORD.exec(text);
-        if (word) {
-          end = i + word[0].length;
-          if (followedByColon(end)) kind = "key";
-          else if (NUMBER_WORD.test(word[0])) kind = "num";
-          else kind = KEYWORD_KIND.get(word[0]) ?? null;
-        }
-      }
-      if (kind) found.push({ kind, pos: i, end });
-      i = end;
-    }
-    return found;
-  }
-
-  // Rows copied from a database come as {...} {...} {...} (one object per
-  // row, no surrounding array). Returns that text as "[{...},{...}]", or null
-  // unless it is 2+ top-level objects/arrays separated only by spaces/commas.
-  function wrapConcatenated(text) {
-    const chunks = [];
-    let depth = 0;
-    let start = 0;
-    let last = 0;
-    for (const { char, pos } of scanBrackets(text)) {
-      if (char === "{" || char === "[") {
-        if (depth === 0) {
-          if (/[^\s,]/.test(stripComments(text.slice(last, pos)))) return null;
-          start = pos;
-        }
-        depth++;
-      } else {
-        if (depth === 0) return null;
-        depth--;
-        if (depth === 0) {
-          chunks.push(text.slice(start, pos + 1));
-          last = pos + 1;
-        }
-      }
-    }
-    if (depth !== 0 || chunks.length < 2) return null;
-    if (/[^\s,]/.test(stripComments(text.slice(last)))) return null;
-    return "[\n" + chunks.join(",\n") + "\n]";
-  }
-
-  // Pretty-printed input: a bracket that ends its line should be closed by
-  // the first later line indented no deeper than the bracket's own line. If
-  // that line doesn't start with the matching closer, the closer is missing
-  // right before it (at the end of the previous line, before its comma).
-  function missingClosersByIndent(text, brackets) {
-    const lines = text.split("\n");
-    if (lines.length < 3) return null;
-    const starts = [0];
-    lines.forEach((l) => starts.push(starts[starts.length - 1] + l.length + 1));
-    const indentOf = (l) => l.match(/^[ \t]*/)[0].replace(/\t/g, "    ").length;
-    const isBlank = (l) => l.trim() === "";
-
-    const inserts = [];
-    let ln = 0;
-    for (const b of brackets) {
-      while (starts[ln + 1] <= b.pos) ln++;
-      if (!CLOSER[b.char] || !isBlank(text.slice(b.pos + 1, starts[ln] + lines[ln].length))) continue;
-
-      const base = indentOf(lines[ln]);
-      let n = ln + 1;
-      while (n < lines.length && (isBlank(lines[n]) || indentOf(lines[n]) > base)) n++;
-      const next = n < lines.length ? lines[n].trim() : "";
-      if (next[0] === CLOSER[b.char]) continue;
-
-      let last = n - 1;
-      while (last > ln && isBlank(lines[last])) last--;
-      if (last === ln) continue;
-      const content = lines[last].replace(/\s+$/, "");
-      const end = starts[last] + content.length;
-      const hasComma = content.endsWith(",");
-      inserts.push({
-        pos: hasComma ? end - 1 : end,
-        char: CLOSER[b.char],
-        open: b.pos,
-        lineIndent: lines[ln].match(/^[ \t]*/)[0],
-        comma: !hasComma && next !== "" && next[0] !== "}" && next[0] !== "]",
-        where: n < lines.length ? `antes da linha ${n + 1}, onde a indentação volta ao nível dele` : "no fim do texto",
-      });
-    }
-    return inserts.length ? inserts : null;
-  }
-
-  // Bracket matching alone: openers skipped by a closer of an outer bracket
-  // are closed right before it; openers still open at the end are closed at
-  // the end. null if nothing is missing or a closer has no opener at all.
-  function missingClosersByMatching(text, brackets) {
-    const lastContentBefore = (pos) => {
-      while (pos > 0 && /\s/.test(text[pos - 1])) pos--;
-      return pos;
-    };
-    // Multi-line text with the spot at a line end: the closer gets its own
-    // line, indented like the line of its opener.
-    const ownLineIndent = (pos, open) => {
-      if (!text.includes("\n") || !/^[ \t]*(\n|$)/.test(text.slice(pos))) return undefined;
-      return text.slice(text.lastIndexOf("\n", open) + 1).match(/^[ \t]*/)[0];
-    };
-    const stack = [];
-    const inserts = [];
-    for (const b of brackets) {
-      if (CLOSER[b.char]) {
-        stack.push(b);
-        continue;
-      }
-      let depth = stack.length - 1;
-      while (depth >= 0 && CLOSER[stack[depth].char] !== b.char) depth--;
-      if (depth < 0) return null;
-      while (stack.length - 1 > depth) {
-        const open = stack.pop();
-        const pos = lastContentBefore(b.pos);
-        inserts.push({
-          pos,
-          char: CLOSER[open.char],
-          open: open.pos,
-          lineIndent: ownLineIndent(pos, open.pos),
-          where: `antes do '${b.char}' da linha ${lineCol(text, b.pos).line}`,
-        });
-      }
-      stack.pop();
-    }
-    while (stack.length) {
-      const open = stack.pop();
-      const pos = lastContentBefore(text.length);
-      inserts.push({
-        pos,
-        char: CLOSER[open.char],
-        open: open.pos,
-        lineIndent: ownLineIndent(pos, open.pos),
-        where: "no fim do texto",
-      });
-    }
-    return inserts.length ? inserts : null;
-  }
-
-  // Inserts the closers (inner ones first when they share a position), each
-  // on its own line when it has a lineIndent, and returns the new text plus
-  // a function mapping old positions to new ones.
-  function applyInserts(text, inserts) {
-    const groups = new Map();
-    inserts.forEach((ins) => {
-      if (!groups.has(ins.pos)) groups.set(ins.pos, []);
-      groups.get(ins.pos).push(ins);
-    });
-    const added = [...groups.entries()]
-      .map(([pos, group]) => {
-        group.sort((a, b) => b.open - a.open);
-        const closers = group.map((g) => (g.lineIndent === undefined ? g.char : "\n" + g.lineIndent + g.char));
-        return { pos, str: closers.join("") + (group.some((g) => g.comma) ? "," : "") };
-      })
-      .sort((a, b) => a.pos - b.pos);
-
-    let out = "";
-    let from = 0;
-    added.forEach(({ pos, str }) => {
-      out += text.slice(from, pos) + str;
-      from = pos;
-    });
-    out += text.slice(from);
-    const shift = (pos) => pos + added.filter((a) => a.pos <= pos).reduce((sum, a) => sum + a.str.length, 0);
-    return { text: out, shift };
-  }
-
-  // Path (keys / indexes) to the container whose opening bracket is at
-  // `target`. Keys are read the way the parser that accepted the text reads
-  // them (JSON.parse, or parseLenient's looser quoting).
-  function containerPath(text, target, lenient) {
-    const keyFrom = (raw) => {
-      const t = raw.trim();
-      const q = t[0];
-      if (q !== '"' && q !== "'") return t;
-      if (lenient) return t.slice(1, -1).split("\\" + q).join(q);
-      try {
-        return JSON.parse(t);
-      } catch {
-        return t.slice(1, -1);
-      }
-    };
-    const frames = [];
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      const top = frames[frames.length - 1];
-      if (c === '"' || c === "'") {
-        i++;
-        while (i < text.length && text[i] !== c) {
-          if (text[i] === "\\") i++;
-          i++;
-        }
-      } else if (c === "/" && text[i + 1] === "*") {
-        const end = text.indexOf("*/", i + 2);
-        i = end < 0 ? text.length : end + 1;
-      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
-        const end = text.indexOf("\n", i);
-        i = end < 0 ? text.length : end;
-      } else if (c === "{" || c === "[") {
-        if (i === target) return frames.map((f) => (f.array ? f.index : f.key));
-        frames.push({ array: c === "[", index: 0, key: null, segStart: i + 1, keyDone: false });
-      } else if (c === "}" || c === "]") {
-        frames.pop();
-      } else if (c === "," && top) {
-        if (top.array) top.index++;
-        else Object.assign(top, { segStart: i + 1, keyDone: false });
-      } else if (c === ":" && top && !top.array && !top.keyDone) {
-        top.key = keyFrom(text.slice(top.segStart, i));
-        top.keyDone = true;
-      }
-    }
-    return null;
-  }
-
-  // Adds the closers and parses the result: { inserts, fixed, value, marks,
-  // usedLenient }, or null if there's nothing to add or it still fails.
-  function tryInserts(text, inserts, lenient) {
-    if (!inserts) return null;
-    const { text: fixed, shift } = applyInserts(text, inserts);
-    let value;
-    let usedLenient = false;
-    try {
-      value = JSON.parse(fixed);
-    } catch {
-      if (!lenient) return null;
-      try {
-        value = parseLenient(fixed);
-        usedLenient = true;
-      } catch {
-        return null;
-      }
-    }
-    const marks = new Map();
-    inserts.forEach((ins) => {
-      const path = containerPath(fixed, shift(ins.open), usedLenient);
-      if (path) marks.set(JSON.stringify(path), { label: `← '${ins.char}' adicionado (faltava)`, openAdded: false });
-    });
-    return { inserts: [...inserts].sort((a, b) => a.open - b.open), fixed, value, marks, usedLenient, shift };
-  }
-
-  // Missing closers fixed automatically: each one is added at the end of the
-  // text (or right before a closer that skips it). `alternative` is set when
-  // the indentation points somewhere else and that also parses.
-  function autoCloseBrackets(text, lenient) {
-    const brackets = scanBrackets(text);
-    const closed = tryInserts(text, missingClosersByMatching(text, brackets), lenient);
-    if (!closed) return null;
-    const byIndent = tryInserts(text, missingClosersByIndent(text, brackets), lenient);
-    const spots = (r) => JSON.stringify(r.inserts.map((ins) => [ins.open, ins.pos]));
-    closed.alternative = byIndent && spots(byIndent) !== spots(closed) ? byIndent : null;
-    return closed;
-  }
-
-  function displayKey(raw) {
-    const t = raw.trim();
-    return /^["']/.test(t) ? `"${t.slice(1, -1)}"` : `"${t}"`;
-  }
-
-  // First place where an object key gets another key as its value, as in
-  // `teste: teste1: "teste2"` (should be `teste: {teste1: "teste2"}`).
-  // Returns { start, end, outerKey, innerKey }: the inner key..value span
-  // that needs { } around it. A bare inner key only counts when its value is
-  // quoted or a {...}/[...] (so `msg: Total: 5`, `url: http://...` and times
-  // like 09:01:08 stay plain text); a quoted one always counts.
-  function findNestedKey(text) {
-    const skipWs = (k) => {
-      while (k < text.length && /\s/.test(text[k])) k++;
-      return k;
-    };
-    const endOfQuoted = (k) => {
-      const q = text[k];
-      k++;
-      while (k < text.length && text[k] !== q && text[k] !== "\n") k += text[k] === "\\" ? 2 : 1;
-      return text[k] === q ? k + 1 : -1;
-    };
-    const endOfBracket = (k) => {
-      let depth = 0;
-      for (; k < text.length; k++) {
-        const c = text[k];
-        if (c === '"' || c === "'") {
-          const e = endOfQuoted(k);
-          if (e < 0) return -1;
-          k = e - 1;
-        } else if (c === "{" || c === "[") {
-          depth++;
-        } else if (c === "}" || c === "]") {
-          depth--;
-          if (depth === 0) return k + 1;
-        }
-      }
-      return -1;
-    };
-    const valueEnd = (k) => {
-      if (text[k] === "{" || text[k] === "[") return endOfBracket(k);
-      if (text[k] === '"' || text[k] === "'") return endOfQuoted(k);
-      let e = k;
-      while (e < text.length && !",}]\n".includes(text[e])) e++;
-      while (e > k && /\s/.test(text[e - 1])) e--;
-      return e > k ? e : -1;
-    };
-    // Is there "key: value" starting at k? Then where does it end.
-    const nestedAt = (k) => {
-      const quoted = text[k] === '"' || text[k] === "'";
-      let keyEnd = -1;
-      if (quoted) {
-        keyEnd = endOfQuoted(k);
-      } else {
-        const m = /^[A-Za-z_$][\w$-]*/.exec(text.slice(k, k + 200));
-        if (m) keyEnd = k + m[0].length;
-      }
-      if (keyEnd < 0) return null;
-      const colon = skipWs(keyEnd);
-      if (text[colon] !== ":") return null;
-      const v = skipWs(colon + 1);
-      if (text.startsWith("//", v)) return null; // http://...
-      const inner = nestedAt(v);
-      if (!quoted && !inner && !`"'{[`.includes(text[v] ?? "x")) return null;
-      const end = inner ? inner.end : valueEnd(v);
-      return end < 0 ? null : { start: k, end, innerKey: displayKey(text.slice(k, keyEnd)) };
-    };
-
-    const frames = [];
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      const top = frames[frames.length - 1];
-      if (c === '"' || c === "'") {
-        const e = endOfQuoted(i);
-        const nl = text.indexOf("\n", i);
-        i = e >= 0 ? e - 1 : nl < 0 ? text.length : nl;
-      } else if (c === "/" && text[i + 1] === "*") {
-        const end = text.indexOf("*/", i + 2);
-        i = end < 0 ? text.length : end + 1;
-      } else if (c === "/" && text[i + 1] === "/" && text[i - 1] !== ":") {
-        const end = text.indexOf("\n", i);
-        i = end < 0 ? text.length : end;
-      } else if (c === "{" || c === "[") {
-        frames.push({ obj: c === "{", colon: false, keyStart: i + 1 });
-      } else if (c === "}" || c === "]") {
-        frames.pop();
-      } else if (c === "," && top && top.obj) {
-        top.colon = false;
-        top.keyStart = i + 1;
-      } else if (c === ":" && top && top.obj && !top.colon) {
-        top.colon = true;
-        const spot = nestedAt(skipWs(i + 1));
-        if (spot) return { ...spot, outerKey: displayKey(text.slice(top.keyStart, i)) };
-      }
-    }
-    return null;
-  }
-
-  // Wraps every key-valued key in { } (see findNestedKey), then parses,
-  // adding missing closers too if needed. When a '}' with no opener comes
-  // after the spot, the '{' is what's missing: only '{' is added and that
-  // '}' closes the new object (openerOnly). If that reading doesn't parse,
-  // both braces are tried. Returns { value, usedLenient, fixed, spots,
-  // closed, marks } or null if there's nothing to wrap or it still fails.
-  function repairNestedKeys(text, lenient) {
-    return wrapNestedKeys(text, lenient, true) ?? wrapNestedKeys(text, lenient, false);
-  }
-
-  function wrapNestedKeys(text, lenient, allowOpenerOnly) {
-    let fixed = text;
-    const spots = [];
-    for (let n = 0; n < 100; n++) {
-      const spot = findNestedKey(fixed);
-      if (!spot) break;
-      const openerOnly = allowOpenerOnly && classifyBrackets(scanBrackets(fixed))
-        .some((b) => b.bad && b.char === "}" && b.pos > spot.start);
-      spots.forEach((s) => {
-        s.pos += (s.pos >= spot.start ? 1 : 0) + (!openerOnly && s.pos >= spot.end ? 1 : 0);
-      });
-      fixed = openerOnly
-        ? fixed.slice(0, spot.start) + "{" + fixed.slice(spot.start)
-        : fixed.slice(0, spot.start) + "{" + fixed.slice(spot.start, spot.end) + "}" + fixed.slice(spot.end);
-      spots.push({
-        pos: spot.start,
-        line: lineCol(fixed, spot.start).line,
-        outerKey: spot.outerKey,
-        innerKey: spot.innerKey,
-        openerOnly,
-      });
-    }
-    if (!spots.length) return null;
-
-    let value;
-    let parsed = false;
-    let usedLenient = false;
-    let closed = null;
-    try {
-      value = JSON.parse(fixed);
-      parsed = true;
-    } catch {
-      if (lenient) {
-        try {
-          value = parseLenient(fixed);
-          parsed = true;
-          usedLenient = true;
-        } catch {
-          // fall through to adding missing closers
-        }
-      }
-    }
-    if (!parsed) {
-      closed = autoCloseBrackets(fixed, lenient);
-      if (!closed) return null;
-      ({ value, usedLenient } = closed);
-    }
-
-    const finalText = closed ? closed.fixed : fixed;
-    const shift = closed ? closed.shift : (pos) => pos;
-    const marks = closed ? new Map(closed.marks) : new Map();
-    spots.forEach((s) => {
-      const path = containerPath(finalText, shift(s.pos), usedLenient);
-      if (!path) return;
-      marks.set(JSON.stringify(path), s.openerOnly
-        ? { label: "← '{' adicionado (faltava abrir)", openAdded: true, closeAdded: false }
-        : { label: "← '{ }' adicionados", openAdded: true });
-    });
-    return { value, usedLenient, fixed: finalText, spots, closed, marks };
-  }
-
-  // `"{...}"` whose inner quotes aren't escaped isn't a valid string; with
-  // Fix JSON the text inside the outer quotes is read instead.
-  function brokenWrapperInner(raw) {
-    const start = raw.search(/\S/);
-    const text = raw.trim();
-    if (!/^(["'])[{\[][\s\S]*[}\]]\1$/.test(text)) return null;
-    return { text: text.slice(1, -1), offset: start + 1 };
-  }
-
-  // For the error view, when closing at the end doesn't produce valid JSON
-  // but the indentation shows where the closer belongs.
-  function suggestBracketRepair(text, lenient) {
-    const brackets = scanBrackets(text);
-    return tryInserts(text, missingClosersByIndent(text, brackets), lenient) ??
-      tryInserts(text, missingClosersByMatching(text, brackets), lenient);
-  }
-
-  function lineCol(text, pos) {
-    const before = text.slice(0, pos);
-    return { line: before.split("\n").length, col: pos - before.lastIndexOf("\n") };
-  }
-
-  // Strict JSON (RFC 8259) checker, used only after JSON.parse fails, to say
-  // where and why in Portuguese with the same positions in every browser.
-  // Returns { pos, message } or null if it finds nothing wrong.
-  function findJsonError(text) {
-    let i = 0;
-    const stack = []; // open brackets: { char, pos }
-    const STOP = /[\s,:{}\[\]"]/;
-
-    function Fail(pos, message) {
-      this.pos = pos;
-      this.message = message;
-    }
-    const fail = (pos, message) => { throw new Fail(pos, message); };
-
-    function found(pos = i) {
-      if (pos >= text.length) return "o fim do texto";
-      if (text[pos] === "\n") return "uma quebra de linha";
-      return `'${text[pos]}'`;
-    }
-
-    function bareToken() {
-      let end = i;
-      while (end < text.length && !STOP.test(text[end])) end++;
-      const token = text.slice(i, end);
-      return token.length > 40 ? token.slice(0, 40) + "…" : token;
-    }
-
-    function unexpectedEnd() {
-      const open = stack[stack.length - 1];
-      if (open) {
-        const close = open.char === "{" ? "}" : "]";
-        fail(open.pos, `Este '${open.char}' nunca foi fechado (falta o '${close}').`);
-      }
-      fail(text.length, "O texto terminou antes do fim do valor.");
-    }
-
-    function skipWs() {
-      while (i < text.length && /[ \t\n\r]/.test(text[i])) i++;
-      if (text[i] === "/" && (text[i + 1] === "/" || text[i + 1] === "*")) {
-        fail(i, "Comentários não são permitidos em JSON.");
-      }
-    }
-
-    // After a value inside { } or [ ]: what should have come instead.
-    function expectedSeparator(close) {
-      const c = text[i];
-      const open = stack[stack.length - 1];
-      if (c === "}" || c === "]") {
-        fail(i, `Esperado '${close}' para fechar o '${open.char}' da linha ${lineCol(text, open.pos).line}, mas encontrou '${c}'.`);
-      }
-      if (/["'{\[\w-]/.test(c)) fail(i, "Falta uma vírgula ',' antes deste item.");
-      fail(i, `Esperado ',' ou '${close}', mas encontrou ${found()}.`);
-    }
-
-    function parseString() {
-      const start = i;
-      i++;
-      while (i < text.length) {
-        const c = text[i];
-        if (c === '"') { i++; return; }
-        if (c === "\\") {
-          const e = text[i + 1];
-          if (e === undefined) break;
-          if (e === "u") {
-            if (!/^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))) {
-              fail(i, "Escape \\u inválido: precisa de 4 dígitos hexadecimais (ex.: \\u00e9).");
-            }
-            i += 6;
-            continue;
-          }
-          if (!'"\\/bfnrt'.includes(e)) fail(i, `Escape inválido '\\${e}' dentro da string.`);
-          i += 2;
-          continue;
-        }
-        if (c === "\n") fail(i, "Quebra de linha dentro de uma string: feche as aspas antes ou use \\n.");
-        if (c < " ") fail(i, "Caractere de controle (ex.: tab) dentro de uma string; use \\t, \\n etc.");
-        i++;
-      }
-      fail(start, "Esta string nunca foi fechada (falta a aspa dupla final).");
-    }
-
-    function parseValue() {
-      skipWs();
-      if (i >= text.length) unexpectedEnd();
-      const c = text[i];
-      if (c === "{") return parseObject();
-      if (c === "[") return parseArray();
-      if (c === '"') return parseString();
-      if (c === "'") fail(i, "Aspas simples não são permitidas; use aspas duplas (\").");
-      if (c === "," || c === "}" || c === "]") fail(i, `Valor esperado antes de '${c}'.`);
-
-      const token = bareToken();
-      if (token === "true" || token === "false" || token === "null") { i += token.length; return; }
-      const number = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
-      if (number.test(token)) { i += token.length; return; }
-
-      const replacements = { True: "true", False: "false", None: "null", undefined: "null", NULL: "null", TRUE: "true", FALSE: "false" };
-      if (replacements[token]) fail(i, `'${token}' não é válido em JSON; use ${replacements[token]}.`);
-      if (/^-?0\d+(\.\d+)?$/.test(token)) fail(i, `Número com zero à esquerda (${token}) não é permitido; coloque entre aspas se for um código.`);
-      if (/^[-+.\deE]+$/.test(token)) fail(i, `Número inválido: ${token}. Se for uma data ou texto, coloque entre aspas duplas.`);
-      fail(i, `Valor sem aspas: ${token}. Textos precisam estar entre aspas duplas.`);
-    }
-
-    function parseObject() {
-      stack.push({ char: "{", pos: i });
-      i++;
-      skipWs();
-      if (text[i] === "}") { i++; stack.pop(); return; }
-      let comma = -1;
-      while (true) {
-        skipWs();
-        if (i >= text.length) unexpectedEnd();
-        const c = text[i];
-        if (c === "}" && comma >= 0) fail(comma, "Vírgula sobrando antes de '}'.");
-        if (c === "'") fail(i, "Aspas simples não são permitidas; use aspas duplas (\").");
-        if (c !== '"') {
-          fail(i, /[\w$]/.test(c)
-            ? `Chave sem aspas: ${bareToken().split(":")[0]}. Em JSON as chaves precisam estar entre aspas duplas.`
-            : `Esperado o nome de uma chave entre aspas, mas encontrou ${found()}.`);
-        }
-        parseString();
-        skipWs();
-        if (i >= text.length) unexpectedEnd();
-        if (text[i] !== ":") fail(i, `Esperado ':' depois da chave, mas encontrou ${found()}.`);
-        i++;
-        parseValue();
-        skipWs();
-        if (i >= text.length) unexpectedEnd();
-        if (text[i] === ",") { comma = i; i++; continue; }
-        if (text[i] === "}") { i++; stack.pop(); return; }
-        expectedSeparator("}");
-      }
-    }
-
-    function parseArray() {
-      stack.push({ char: "[", pos: i });
-      i++;
-      skipWs();
-      if (text[i] === "]") { i++; stack.pop(); return; }
-      let comma = -1;
-      while (true) {
-        skipWs();
-        if (text[i] === "]" && comma >= 0) fail(comma, "Vírgula sobrando antes de ']'.");
-        parseValue();
-        skipWs();
-        if (i >= text.length) unexpectedEnd();
-        if (text[i] === ",") { comma = i; i++; continue; }
-        if (text[i] === "]") { i++; stack.pop(); return; }
-        expectedSeparator("]");
-      }
-    }
-
-    try {
-      skipWs();
-      parseValue();
-      skipWs();
-      if (i < text.length) {
-        const c = text[i];
-        fail(i, c === "}" || c === "]"
-          ? `'${c}' sobrando: não há nada aberto para ele fechar.`
-          : `Conteúdo extra depois do fim do JSON, começando em ${found()}.`);
-      }
-      return null;
-    } catch (err) {
-      if (err instanceof Fail) return { pos: err.pos, message: err.message };
-      return null; // e.g. nesting too deep for recursion; caller falls back
-    }
-  }
-
-  function strictErrorInfo(text, nativeErr) {
-    const info = findJsonError(text);
-    if (info) return info;
-    const match = /position (\d+)/.exec(nativeErr.message);
-    return { pos: match ? Number(match[1]) : null, message: nativeErr.message };
-  }
-
-  // Heuristic conformance checks against the raw (pre-fix) input.
-  function validateSpec(raw, spec) {
-    const warnings = [];
-    const trimmed = raw.trim();
-
-    if (spec === "rfc4627") {
-      if (trimmed && !/^[{\[]/.test(trimmed)) {
-        warnings.push(
-          "RFC 4627 exige que o valor de nível superior seja um objeto ou array."
-        );
-      }
-    }
-
-    if (spec === "rfc8259" || spec === "ecma404" || spec === "rfc4627") {
-      if (/\/\/|\/\*/.test(raw)) {
-        warnings.push("Comentários não são permitidos por esta especificação.");
-      }
-      if (/,\s*[}\]]/.test(raw)) {
-        warnings.push("Vírgulas finais (trailing commas) não são permitidas.");
-      }
-      if (/'[^']*'/.test(raw)) {
-        warnings.push("Aspas simples não são permitidas; use aspas duplas.");
-      }
-      if (/[{,]\s*[A-Za-z_$][A-Za-z0-9_$]*\s*:/.test(raw)) {
-        warnings.push("Chaves de objeto devem estar entre aspas duplas.");
-      }
-    }
-
-    return warnings;
-  }
-
   // Syntax color class suffix (jv-str, jv-num...) for a non-container value.
   function primitiveKind(value) {
     if (value === null) return "null";
+    if (value instanceof RawNumber) return "num";
     if (typeof value === "string") return "str";
     if (typeof value === "boolean") return "bool";
     return "num";
@@ -1172,9 +294,9 @@
     return span;
   }
 
-  // Renders value so its text matches JSON.stringify(value, null, indent)
-  // exactly (selecting and copying from the view yields the same JSON), with
-  // each non-empty object/array wrapped in a collapsible .jv-node.
+  // Renders value so its text matches stringify(value, indent) exactly
+  // (selecting and copying from the view yields the same JSON), with each
+  // non-empty object/array wrapped in a collapsible .jv-node.
   // marks (optional): Map of JSON.stringify(path) -> { label, openAdded,
   // closeAdded }, for containers whose brackets were added by an automatic
   // fix: the added brackets are highlighted (an existing opener only
@@ -1182,8 +304,8 @@
   // added; otherwise it's returned for the caller to place at the end of the
   // closer's line (after any comma).
   function renderValue(parent, value, indent, depth, path = [], marks = null) {
-    if (value === null || typeof value !== "object") {
-      parent.append(span(`jv-${primitiveKind(value)}`, JSON.stringify(value)));
+    if (value === null || typeof value !== "object" || value instanceof RawNumber) {
+      parent.append(span(`jv-${primitiveKind(value)}`, stringify(value)));
       return null;
     }
 
@@ -1259,7 +381,7 @@
 
   // marks: see renderValue (closers that were added automatically).
   function showOutput(value, indent, marks = null) {
-    outputText = indent === null ? JSON.stringify(value) : JSON.stringify(value, null, indent);
+    outputText = stringify(value, indent);
     const root = document.createElement("div");
     root.className = "jv-line";
     const rootLabel = renderValue(root, value, indent, 0, [], marks);
@@ -1364,12 +486,14 @@
   }
 
   // Shows the output of an automatically fixed text (key-valued keys wrapped
-  // in { }, missing closers added) with a warning above it listing what was
-  // changed. fix: { value, marks, fixed, spots?, closed? }; source/offset as
-  // in showBracketRepair. Returns the summary for the status box.
+  // in { }, missing closers or commas added) with a warning above it listing
+  // what was changed. fix: { value, marks?, fixed, spots?, closed?, commas? }
+  // (commas: parseLenient's missingCommas); source/offset as in
+  // showBracketRepair. Returns the summary for the status box.
   function showFixedOutput(fix, source, offset) {
     const spots = fix.spots ?? [];
     const closed = fix.closed ?? null;
+    const commas = fix.commas ?? [];
     const input = inputEl.value;
     const shown = offset >= 0 ? input : source;
     const toShown = (pos) => (offset >= 0 ? offset + pos : pos);
@@ -1408,8 +532,21 @@
         : `Faltavam ${closed.inserts.length} fechamentos; foram adicionados automaticamente.`);
     }
 
+    if (commas.length) {
+      commas.forEach((c) => {
+        const at = lineCol(shown, toShown(c.pos));
+        items.push(`Faltava uma vírgula na linha ${at.line}, coluna ${at.col}, antes de ${c.before}; foi adicionada.`);
+      });
+      const at = lineCol(shown, toShown(commas[0].pos));
+      summary.push(commas.length === 1
+        ? `Faltava uma vírgula na linha ${at.line}, antes de ${commas[0].before}; foi adicionada.`
+        : `Faltavam ${commas.length} vírgulas (a primeira na linha ${at.line}); foram adicionadas.`);
+    }
+
     let titleText;
-    if (spots.length && closed) titleText = "Corrigi o JSON automaticamente";
+    if ([spots.length, closed, commas.length].filter(Boolean).length > 1) titleText = "Corrigi o JSON automaticamente";
+    else if (commas.length === 1) titleText = "Faltava uma vírgula: adicionei";
+    else if (commas.length) titleText = `Faltavam ${commas.length} vírgulas: adicionei`;
     else if (spots.length === 1 && spots[0].openerOnly) titleText = `Faltava abrir um '{': a chave ${spots[0].outerKey} recebia outra chave como valor`;
     else if (spots.length === 1) titleText = "Uma chave recebia outra chave como valor: coloquei as '{ }'";
     else if (spots.length) titleText = `${spots.length} chaves recebiam outra chave como valor: corrigi as chaves`;
@@ -1560,112 +697,6 @@
         `(linha ${where.line}, coluna ${where.col}). Veja a sugestão na saída.`,
       "error"
     );
-  }
-
-  // Re-indents text that isn't valid JSON so an error in a one-line input can
-  // be found and edited. Only whitespace between tokens changes: strings,
-  // bare values and comments are copied as is, and unbalanced brackets are
-  // tolerated.
-  function formatLoose(text, indent) {
-    let out = "";
-    let depth = 0;
-    let pending = false; // a line break is owed before the next output
-    let last = ""; // "open" | "close" | "sep" | "colon" | "token" | "string"
-    const frames = []; // per open bracket: { obj, colon }
-
-    const breakLine = () => {
-      out += "\n" + indent.repeat(depth);
-      pending = false;
-    };
-    const beforeItem = () => {
-      if (pending) breakLine();
-      else if (last === "token" || last === "string" || last === "close") out += " ";
-    };
-    const emitToken = (tok, kind = "token") => {
-      beforeItem();
-      out += tok;
-      last = kind;
-    };
-    const startsComment = (j) =>
-      text[j] === "/" && (text[j + 1] === "*" || (text[j + 1] === "/" && text[j - 1] !== ":"));
-
-    for (let i = 0; i < text.length; ) {
-      const c = text[i];
-      const top = frames[frames.length - 1];
-      if (/\s/.test(c)) {
-        i++;
-      } else if (c === '"' || c === "'") {
-        let j = i + 1;
-        while (j < text.length && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
-        j = Math.min(text[j] === c ? j + 1 : j, text.length);
-        emitToken(text.slice(i, j), "string");
-        i = j;
-      } else if (c === "/" && text[i + 1] === "*") {
-        const end = text.indexOf("*/", i + 2);
-        const j = end < 0 ? text.length : end + 2;
-        emitToken(text.slice(i, j));
-        i = j;
-      } else if (startsComment(i)) {
-        const end = text.indexOf("\n", i);
-        const j = end < 0 ? text.length : end;
-        emitToken(text.slice(i, j).trimEnd());
-        pending = true; // whatever follows must not end up inside the comment
-        i = j;
-      } else if (c === "{" || c === "[") {
-        beforeItem();
-        out += c;
-        depth++;
-        frames.push({ obj: c === "{", colon: false });
-        pending = true;
-        last = "open";
-        i++;
-      } else if (c === "}" || c === "]") {
-        depth = Math.max(0, depth - 1);
-        frames.pop();
-        if (last === "open") pending = false;
-        else breakLine();
-        out += c;
-        last = "close";
-        i++;
-      } else if (c === ",") {
-        if (pending && last !== "open") breakLine();
-        out += ",";
-        if (top && top.obj) top.colon = false;
-        pending = true;
-        last = "sep";
-        i++;
-      } else if (c === ":" && top && top.obj && (!top.colon || last === "string")) {
-        // After a quoted string it's a key even if a comma is missing before.
-        if (pending) breakLine();
-        out += ": ";
-        top.colon = true;
-        last = "colon";
-        i++;
-      } else {
-        // Bare word (unquoted key/value). Keeps inner spaces, and ':' once
-        // past the key (timestamps like 09:01:08 are values).
-        const stopAtColon = top && top.obj && !top.colon;
-        let j = i;
-        while (
-          j < text.length &&
-          !'{}[],"\'\n'.includes(text[j]) &&
-          !(stopAtColon && text[j] === ":") &&
-          !(j > i && startsComment(j))
-        ) j++;
-        emitToken(text.slice(i, Math.max(j, i + 1)).trim());
-        i = Math.max(j, i + 1);
-      }
-    }
-    return out;
-  }
-
-  // One-line / minified input: some long line packed with brackets/commas.
-  function isHardToEdit(text) {
-    return text.split("\n").some((line) => {
-      if (line.length <= 80) return false;
-      const structural = line.replace(/"(?:[^"\\]|\\.)*"/g, "").match(/[{}\[\],]/g);
-      return structural !== null && structural.length >= 4;
-    });
   }
 
   // Replaces the input text keeping the browser's undo history (Ctrl+Z)
@@ -1830,7 +861,7 @@
     const shouldFix = fixEl.checked;
     const warnings = validateSpec(raw, spec);
 
-    const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas finais etc.";
+    const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas sobrando ou faltando etc.";
 
     // Output shown: status notes, then history.
     const finish = (notes, ok) => {
@@ -1838,7 +869,6 @@
       addToHistory({
         timestamp: Date.now(),
         input: raw,
-        output: outputText,
         template: templateEl.value,
         spec,
         fix: shouldFix,
@@ -1865,12 +895,12 @@
     // Returns { value, usedFix, repaired? } or null after reporting the error.
     const read = (source, offset) => {
       try {
-        return { value: JSON.parse(source), usedFix: source !== raw };
+        return { value: parseJson(source), usedFix: source !== raw };
       } catch (strictErr) {
         const list = shouldFix ? wrapConcatenated(source) : null;
         if (list) {
           try {
-            return { value: JSON.parse(list), usedFix: true, joined: true };
+            return { value: parseJson(list), usedFix: true, joined: true };
           } catch {
             try {
               return { value: parseLenient(list), usedFix: true, joined: true };
@@ -1888,7 +918,11 @@
           return null;
         }
         try {
-          return { value: parseLenient(source), usedFix: true };
+          const report = {};
+          const value = parseLenient(source, report);
+          const commas = report.missingCommas;
+          if (!commas.length) return { value, usedFix: true };
+          return { value, usedFix: true, repaired: { commas, fixed: insertCommas(source, commas), source, offset } };
         } catch (lenientErr) {
           const wrapped = source === raw ? brokenWrapperInner(raw) : null;
           if (wrapped) return read(wrapped.text, wrapped.offset);
