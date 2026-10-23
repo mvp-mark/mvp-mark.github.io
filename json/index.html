@@ -116,6 +116,7 @@
     <p><strong>Fix JSON</strong> tenta corrigir automaticamente problemas comuns antes de formatar:</p>
     <ul>
       <li>Vírgulas finais (trailing commas)</li>
+      <li>Vírgula faltando entre itens (<code>{"a": 1 "b": 2}</code>)</li>
       <li>Aspas simples em vez de duplas</li>
       <li>Chaves sem aspas</li>
       <li>Comentários <code>//</code> e <code>/* */</code></li>
@@ -127,7 +128,7 @@
     <button id="fixHelpClose">Fechar</button>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

@@ -1,9 +1,10 @@
-const CACHE_NAME = "json-formatter-v4";
+const CACHE_NAME = "json-formatter-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
+  "./parser.js",
   "./favicon.svg",
   "./fonts/inter-latin.woff2",
   "./fonts/jetbrains-mono-latin.woff2"
