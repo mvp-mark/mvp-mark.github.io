@@ -13,8 +13,10 @@ const sw = readFileSync(swPath, "utf8");
 
 const list = sw.match(/const ASSETS = \[([\s\S]*?)\];/);
 if (!list) throw new Error("ASSETS não encontrado em sw.js");
-// "./" is index.html, which is listed too.
-const assets = [...list[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter((asset) => asset !== "./");
+// A folder ("./", "./en/") is its index.html.
+const assets = [...new Set([...list[1].matchAll(/"([^"]+)"/g)]
+  .map((m) => m[1])
+  .map((asset) => (asset.endsWith("/") ? asset + "index.html" : asset)))];
 
 const hash = createHash("sha256");
 for (const asset of assets) {

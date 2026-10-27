@@ -1,5 +1,8 @@
 // Parsing, repair and validation of JSON-like text: everything the formatter
-// does that doesn't touch the DOM (used by app.js and by tests/).
+// does that doesn't touch the DOM (used by app.js and by tests/). Messages
+// come from i18n.js, in its current locale.
+
+import { t } from "./i18n.js";
 
 // A number kept as written. JS numbers are doubles, so JSON.parse turns
 // 12345678901234567890 into 12345678901234567000 and 1.0 into 1; since a
@@ -206,14 +209,14 @@ export function parseLenient(text, report = null) {
   }
 
   function found() {
-    return i >= s.length ? "o fim do texto" : `'${s[i]}'`;
+    return i >= s.length ? t("found.end") : `'${s[i]}'`;
   }
 
   function readQuotedString(quote) {
     const start = i;
     i++; // opening quote
     while (i < s.length && s[i] !== quote) i += s[i] === "\\" ? 2 : 1;
-    if (s[i] !== quote) error("Esta string nunca foi fechada (falta a aspa final).", start);
+    if (s[i] !== quote) error(t("parse.stringNotClosed"), start);
     i++; // closing quote
     return unescapeLenient(s.slice(start + 1, i - 1));
   }
@@ -294,7 +297,7 @@ export function parseLenient(text, report = null) {
     const token = readBareValue(container);
     if (token === "") {
       if (container === "object") return "";
-      error(`Valor esperado, mas encontrou ${found()}.`);
+      error(t("parse.valueExpected", { found: found() }));
     }
     return coerceBareToken(token);
   }
@@ -304,7 +307,7 @@ export function parseLenient(text, report = null) {
     const c = s[i];
     if (c === '"' || c === "'") return readQuotedString(c);
     const token = readBareUntil(KEY_END);
-    if (token === "") error(`Chave esperada, mas encontrou ${found()}.`);
+    if (token === "") error(t("parse.keyExpected", { found: found() }));
     return token;
   }
 
@@ -317,7 +320,7 @@ export function parseLenient(text, report = null) {
     while (true) {
       const key = parseKey();
       skipWs();
-      if (s[i] !== ":") error(`Esperado ':' depois da chave, mas encontrou ${found()}.`);
+      if (s[i] !== ":") error(t("parse.colonExpected", { found: found() }));
       i++;
       const value = parseValue("object");
       // Plain assignment to "__proto__" would set the prototype instead.
@@ -330,8 +333,8 @@ export function parseLenient(text, report = null) {
       if (s[i] === ",") { i++; skipWs(); if (s[i] === "}") { i++; break; } continue; }
       if (s[i] === "}") { i++; break; }
       if (keyAt(i)) { assumeComma(); continue; }
-      if (i >= s.length) error("Este '{' nunca foi fechado (falta o '}').", open);
-      error(`Esperado ',' ou '}', mas encontrou ${found()}.`);
+      if (i >= s.length) error(t("parse.neverClosed", { open: "{", close: "}" }), open);
+      error(t("parse.commaOrClose", { close: "}", found: found() }));
     }
     return obj;
   }
@@ -349,8 +352,8 @@ export function parseLenient(text, report = null) {
       if (s[i] === ",") { i++; skipWs(); if (s[i] === "]") { i++; break; } continue; }
       if (s[i] === "]") { i++; break; }
       if (i < s.length && (itemAt(i) || s.slice(end, i).includes("\n"))) { assumeComma(); continue; }
-      if (i >= s.length) error("Este '[' nunca foi fechado (falta o ']').", open);
-      error(`Esperado ',' ou ']', mas encontrou ${found()}.`);
+      if (i >= s.length) error(t("parse.neverClosed", { open: "[", close: "]" }), open);
+      error(t("parse.commaOrClose", { close: "]", found: found() }));
     }
     return arr;
   }
@@ -358,7 +361,7 @@ export function parseLenient(text, report = null) {
   skipWs();
   const result = parseValue(null);
   skipWs();
-  if (i < s.length) error(`Conteúdo extra depois do fim do JSON, começando em ${found()}.`);
+  if (i < s.length) error(t("parse.extraContent", { found: found() }));
   return result;
 }
 
@@ -531,7 +534,7 @@ function missingClosersByIndent(text, brackets) {
       open: b.pos,
       lineIndent: lines[ln].match(/^[ \t]*/)[0],
       comma: !hasComma && next !== "" && next[0] !== "}" && next[0] !== "]",
-      where: n < lines.length ? `antes da linha ${n + 1}, onde a indentação volta ao nível dele` : "no fim do texto",
+      where: n < lines.length ? t("where.beforeIndent", { line: n + 1 }) : t("where.end"),
     });
   }
   return inserts.length ? inserts : null;
@@ -569,7 +572,7 @@ function missingClosersByMatching(text, brackets) {
         char: CLOSER[open.char],
         open: open.pos,
         lineIndent: ownLineIndent(pos, open.pos),
-        where: `antes do '${b.char}' da linha ${lineCol(text, b.pos).line}`,
+        where: t("where.beforeCloser", { char: b.char, line: lineCol(text, b.pos).line }),
       });
     }
     stack.pop();
@@ -582,7 +585,7 @@ function missingClosersByMatching(text, brackets) {
       char: CLOSER[open.char],
       open: open.pos,
       lineIndent: ownLineIndent(pos, open.pos),
-      where: "no fim do texto",
+      where: t("where.end"),
     });
   }
   return inserts.length ? inserts : null;
@@ -684,7 +687,7 @@ function tryInserts(text, inserts, lenient) {
   const marks = new Map();
   inserts.forEach((ins) => {
     const path = containerPath(fixed, shift(ins.open), usedLenient);
-    if (path) marks.set(JSON.stringify(path), { label: `← '${ins.char}' adicionado (faltava)`, openAdded: false });
+    if (path) marks.set(JSON.stringify(path), { label: t("mark.closerAdded", { char: ins.char }), openAdded: false });
   });
   return { inserts: [...inserts].sort((a, b) => a.open - b.open), fixed, value, marks, usedLenient, shift };
 }
@@ -865,8 +868,8 @@ function wrapNestedKeys(text, lenient, allowOpenerOnly) {
     const path = containerPath(finalText, shift(s.pos), usedLenient);
     if (!path) return;
     marks.set(JSON.stringify(path), s.openerOnly
-      ? { label: "← '{' adicionado (faltava abrir)", openAdded: true, closeAdded: false }
-      : { label: "← '{ }' adicionados", openAdded: true });
+      ? { label: t("mark.openerAdded"), openAdded: true, closeAdded: false }
+      : { label: t("mark.bracesAdded"), openAdded: true });
   });
   return { value, usedLenient, fixed: finalText, spots, closed, marks };
 }
@@ -908,8 +911,8 @@ export function findJsonError(text) {
   const fail = (pos, message) => { throw new Fail(pos, message); };
 
   function found(pos = i) {
-    if (pos >= text.length) return "o fim do texto";
-    if (text[pos] === "\n") return "uma quebra de linha";
+    if (pos >= text.length) return t("found.end");
+    if (text[pos] === "\n") return t("found.lineBreak");
     return `'${text[pos]}'`;
   }
 
@@ -924,15 +927,15 @@ export function findJsonError(text) {
     const open = stack[stack.length - 1];
     if (open) {
       const close = open.char === "{" ? "}" : "]";
-      fail(open.pos, `Este '${open.char}' nunca foi fechado (falta o '${close}').`);
+      fail(open.pos, t("parse.neverClosed", { open: open.char, close }));
     }
-    fail(text.length, "O texto terminou antes do fim do valor.");
+    fail(text.length, t("strict.endedEarly"));
   }
 
   function skipWs() {
     while (i < text.length && /[ \t\n\r]/.test(text[i])) i++;
     if (text[i] === "/" && (text[i + 1] === "/" || text[i + 1] === "*")) {
-      fail(i, "Comentários não são permitidos em JSON.");
+      fail(i, t("strict.comments"));
     }
   }
 
@@ -941,10 +944,10 @@ export function findJsonError(text) {
     const c = text[i];
     const open = stack[stack.length - 1];
     if (c === "}" || c === "]") {
-      fail(i, `Esperado '${close}' para fechar o '${open.char}' da linha ${lineCol(text, open.pos).line}, mas encontrou '${c}'.`);
+      fail(i, t("strict.wrongCloser", { close, open: open.char, line: lineCol(text, open.pos).line, found: c }));
     }
-    if (/["'{\[\w-]/.test(c)) fail(i, "Falta uma vírgula ',' antes deste item.");
-    fail(i, `Esperado ',' ou '${close}', mas encontrou ${found()}.`);
+    if (/["'{\[\w-]/.test(c)) fail(i, t("strict.missingComma"));
+    fail(i, t("parse.commaOrClose", { close, found: found() }));
   }
 
   function parseString() {
@@ -958,20 +961,20 @@ export function findJsonError(text) {
         if (e === undefined) break;
         if (e === "u") {
           if (!/^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))) {
-            fail(i, "Escape \\u inválido: precisa de 4 dígitos hexadecimais (ex.: \\u00e9).");
+            fail(i, t("strict.badUnicodeEscape"));
           }
           i += 6;
           continue;
         }
-        if (!'"\\/bfnrt'.includes(e)) fail(i, `Escape inválido '\\${e}' dentro da string.`);
+        if (!'"\\/bfnrt'.includes(e)) fail(i, t("strict.badEscape", { char: e }));
         i += 2;
         continue;
       }
-      if (c === "\n") fail(i, "Quebra de linha dentro de uma string: feche as aspas antes ou use \\n.");
-      if (c < " ") fail(i, "Caractere de controle (ex.: tab) dentro de uma string; use \\t, \\n etc.");
+      if (c === "\n") fail(i, t("strict.newlineInString"));
+      if (c < " ") fail(i, t("strict.controlChar"));
       i++;
     }
-    fail(start, "Esta string nunca foi fechada (falta a aspa dupla final).");
+    fail(start, t("strict.stringNotClosed"));
   }
 
   function parseValue() {
@@ -981,8 +984,8 @@ export function findJsonError(text) {
     if (c === "{") return parseObject();
     if (c === "[") return parseArray();
     if (c === '"') return parseString();
-    if (c === "'") fail(i, "Aspas simples não são permitidas; use aspas duplas (\").");
-    if (c === "," || c === "}" || c === "]") fail(i, `Valor esperado antes de '${c}'.`);
+    if (c === "'") fail(i, t("strict.singleQuotes"));
+    if (c === "," || c === "}" || c === "]") fail(i, t("strict.valueBefore", { char: c }));
 
     const token = bareToken();
     if (token === "true" || token === "false" || token === "null") { i += token.length; return; }
@@ -990,10 +993,10 @@ export function findJsonError(text) {
     if (number.test(token)) { i += token.length; return; }
 
     const replacements = { True: "true", False: "false", None: "null", undefined: "null", NULL: "null", TRUE: "true", FALSE: "false" };
-    if (replacements[token]) fail(i, `'${token}' não é válido em JSON; use ${replacements[token]}.`);
-    if (/^-?0\d+(\.\d+)?$/.test(token)) fail(i, `Número com zero à esquerda (${token}) não é permitido; coloque entre aspas se for um código.`);
-    if (/^[-+.\deE]+$/.test(token)) fail(i, `Número inválido: ${token}. Se for uma data ou texto, coloque entre aspas duplas.`);
-    fail(i, `Valor sem aspas: ${token}. Textos precisam estar entre aspas duplas.`);
+    if (replacements[token]) fail(i, t("strict.notJson", { token, replacement: replacements[token] }));
+    if (/^-?0\d+(\.\d+)?$/.test(token)) fail(i, t("strict.leadingZero", { token }));
+    if (/^[-+.\deE]+$/.test(token)) fail(i, t("strict.badNumber", { token }));
+    fail(i, t("strict.unquotedValue", { token }));
   }
 
   function parseObject() {
@@ -1006,17 +1009,17 @@ export function findJsonError(text) {
       skipWs();
       if (i >= text.length) unexpectedEnd();
       const c = text[i];
-      if (c === "}" && comma >= 0) fail(comma, "Vírgula sobrando antes de '}'.");
-      if (c === "'") fail(i, "Aspas simples não são permitidas; use aspas duplas (\").");
+      if (c === "}" && comma >= 0) fail(comma, t("strict.trailingComma", { char: "}" }));
+      if (c === "'") fail(i, t("strict.singleQuotes"));
       if (c !== '"') {
         fail(i, /[\w$]/.test(c)
-          ? `Chave sem aspas: ${bareToken().split(":")[0]}. Em JSON as chaves precisam estar entre aspas duplas.`
-          : `Esperado o nome de uma chave entre aspas, mas encontrou ${found()}.`);
+          ? t("strict.unquotedKey", { key: bareToken().split(":")[0] })
+          : t("strict.keyExpected", { found: found() }));
       }
       parseString();
       skipWs();
       if (i >= text.length) unexpectedEnd();
-      if (text[i] !== ":") fail(i, `Esperado ':' depois da chave, mas encontrou ${found()}.`);
+      if (text[i] !== ":") fail(i, t("parse.colonExpected", { found: found() }));
       i++;
       parseValue();
       skipWs();
@@ -1035,7 +1038,7 @@ export function findJsonError(text) {
     let comma = -1;
     while (true) {
       skipWs();
-      if (text[i] === "]" && comma >= 0) fail(comma, "Vírgula sobrando antes de ']'.");
+      if (text[i] === "]" && comma >= 0) fail(comma, t("strict.trailingComma", { char: "]" }));
       parseValue();
       skipWs();
       if (i >= text.length) unexpectedEnd();
@@ -1052,8 +1055,8 @@ export function findJsonError(text) {
     if (i < text.length) {
       const c = text[i];
       fail(i, c === "}" || c === "]"
-        ? `'${c}' sobrando: não há nada aberto para ele fechar.`
-        : `Conteúdo extra depois do fim do JSON, começando em ${found()}.`);
+        ? t("strict.strayCloser", { char: c })
+        : t("parse.extraContent", { found: found() }));
     }
     return null;
   } catch (err) {
@@ -1090,19 +1093,19 @@ export function validateSpec(raw, spec) {
 
   const trimmed = code.trim();
   if (spec === "rfc4627" && trimmed && !/^[{\[]/.test(trimmed)) {
-    warnings.push("RFC 4627 exige que o valor de nível superior seja um objeto ou array.");
+    warnings.push(t("spec.rfc4627TopLevel"));
   }
   if (comments) {
-    warnings.push("Comentários não são permitidos por esta especificação.");
+    warnings.push(t("spec.comments"));
   }
   if (/,\s*[}\]]/.test(code)) {
-    warnings.push("Vírgulas finais (trailing commas) não são permitidas.");
+    warnings.push(t("spec.trailingCommas"));
   }
   if (singleQuotes) {
-    warnings.push("Aspas simples não são permitidas; use aspas duplas.");
+    warnings.push(t("spec.singleQuotes"));
   }
   if (/[{,]\s*[A-Za-z_$][A-Za-z0-9_$]*\s*:/.test(code)) {
-    warnings.push("Chaves de objeto devem estar entre aspas duplas.");
+    warnings.push(t("spec.unquotedKeys"));
   }
   return warnings;
 }

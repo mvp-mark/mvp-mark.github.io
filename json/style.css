@@ -226,6 +226,40 @@ html, body {
   transform: translateY(-1px);
 }
 
+/* Offers the browser's language when the page is in another one. */
+.lang-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.08);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.lang-hint[hidden] { display: none; }
+
+.lang-hint a {
+  flex: 1;
+  color: var(--sidebar-fg);
+  font-weight: 600;
+}
+
+.lang-hint button {
+  border: none;
+  background: none;
+  color: var(--sidebar-fg);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.lang-hint button:hover { opacity: 1; }
+
 .field {
   display: flex;
   flex-direction: column;

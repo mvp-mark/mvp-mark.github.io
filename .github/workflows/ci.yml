@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - name: Testes
         run: npm test
+      - name: Páginas por idioma (SEO)
+        run: node scripts/build-pages.js --check
       - name: Versão do cache do service worker
         run: node scripts/sw-version.js --check
       - name: Testes no navegador (Chrome do runner)

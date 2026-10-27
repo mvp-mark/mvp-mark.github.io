@@ -15,7 +15,7 @@ export async function run() {
       console.log(`ok   ${name}`);
     } catch (err) {
       failed++;
-      console.log(`FAIL ${name}\n     ${String(err.message).split("\n").join("\n     ")}`);
+      console.log(`FAIL ${name}\n     ${String(process.env.DEBUG ? err.stack : err.message).split("\n").join("\n     ")}`);
     }
   }
   console.log(`\n${selected.length - failed}/${selected.length} passaram`);

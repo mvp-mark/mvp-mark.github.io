@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-locale="en" data-root="../">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Formatter Online – Format, Validate and Fix JSON</title>
+<meta name="description" content="Format, validate and fix JSON online, free and right in your browser. Fixes trailing commas, single quotes, unquoted keys and comments, with RFC 8259, ECMA-404 and JSON5 support.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Marcus Vinícius Peixoto Paulo">
+<meta name="theme-color" content="#0f172a">
+<link rel="canonical" href="https://mvp-json.vercel.app/en/">
+<!-- i18n:alternates (scripts/build-pages.js) -->
+<link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/">
+<link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/">
+<link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/">
+<link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/">
+<link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/">
+<link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/">
+<link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/">
+<link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/">
+<link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="de_DE">
+<meta property="og:locale:alternate" content="it_IT">
+<meta property="og:locale:alternate" content="ja_JP">
+<meta property="og:locale:alternate" content="zh_CN">
+<!-- /i18n:alternates -->
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="JSON Formatter">
+<meta property="og:title" content="JSON Formatter Online – Format, Validate and Fix JSON">
+<meta property="og:description" content="Format, validate and fix JSON online, free and right in your browser.">
+<meta property="og:url" content="https://mvp-json.vercel.app/en/">
+<meta property="og:image" content="https://mvp-json.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="JSON Formatter – format, validate and fix JSON online">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JSON Formatter Online – Format, Validate and Fix JSON">
+<meta name="twitter:description" content="Format, validate and fix JSON online, free and right in your browser.">
+<meta name="twitter:image" content="https://mvp-json.vercel.app/og-image.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "JSON Formatter",
+  "url": "https://mvp-json.vercel.app/en/",
+  "description": "Format, validate and fix JSON online, free and right in your browser.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "en",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "BRL"
+  },
+  "featureList": [
+    "Formatting with configurable indentation",
+    "RFC 8259, RFC 4627, ECMA-404 and JSON5 validation",
+    "Automatic repair of invalid JSON",
+    "Syntax highlighting and rainbow brackets",
+    "Search by key or value, with the path (JSONPath) of each match",
+    "Comparison of two JSON documents",
+    "Conversion to YAML and CSV",
+    "Share links without a server",
+    "Works offline"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "Marcus Vinícius Peixoto Paulo"
+  }
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-theme="dark" data-syntax="default" data-rainbow="on">
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="brand">JSON Formatter</h1>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to the light theme" data-i18n="theme.toLight" data-i18n-attr="aria-label=theme.toLightLabel">☀️ Light</button>
+      <p class="lang-hint" id="langHint" hidden><a id="langHintLink" href="#"></a><button type="button" id="langHintClose" aria-label="Close" data-i18n-attr="aria-label=common.close">×</button></p>
+
+      <div class="field">
+        <label for="language" data-i18n="settings.language">Language</label>
+        <select id="language">
+          <option value="pt">Português</option>
+          <option value="en" selected>English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="it">Italiano</option>
+          <option value="ja">日本語</option>
+          <option value="zh">简体中文</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="template" data-i18n="settings.template">Indentation</label>
+        <select id="template">
+          <option value="compact" data-i18n="template.compact">Compact (no whitespace)</option>
+          <option value="1" data-i18n="template.1">1 space</option>
+          <option value="2" data-i18n="template.2">2 spaces</option>
+          <option value="3" selected data-i18n="template.3">3 spaces</option>
+          <option value="4" data-i18n="template.4">4 spaces</option>
+          <option value="tab" data-i18n="template.tab">Tab</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="spec" data-i18n="settings.spec">JSON specification</label>
+        <select id="spec">
+          <option value="rfc8259" selected>RFC 8259</option>
+          <option value="rfc4627">RFC 4627</option>
+          <option value="ecma404">ECMA-404</option>
+          <option value="json5">JSON5</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="syntaxTheme" data-i18n="settings.colors">JSON colors</label>
+        <select id="syntaxTheme">
+          <option value="default" selected data-i18n="colors.default">Default (VS Code)</option>
+          <option value="github">GitHub</option>
+          <option value="monokai">Monokai</option>
+          <option value="dracula">Dracula</option>
+          <option value="solarized">Solarized</option>
+          <option value="none" data-i18n="colors.none">No colors</option>
+        </select>
+        <div class="syntax-preview" aria-hidden="true"><span class="jv-bracket jv-depth-0">{</span><span class="jv-key">"nome"</span>: <span class="jv-str">"Ana"</span>, <span class="jv-key">"idade"</span>: <span class="jv-num">31</span>, <span class="jv-key">"ativo"</span>: <span class="jv-bool">true</span>, <span class="jv-key">"tags"</span>: <span class="jv-bracket jv-depth-1">[</span><span class="jv-null">null</span><span class="jv-bracket jv-depth-1">]</span><span class="jv-bracket jv-depth-0">}</span></div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rainbowBrackets" checked>
+          <span data-i18n="settings.rainbow">Rainbow brackets</span>
+        </label>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="fixJson" checked>
+          <span data-i18n="settings.fix">Fix JSON</span>
+        </label>
+        <button class="help-btn" id="fixHelpBtn" title="What is Fix JSON?" aria-label="Help about Fix JSON" data-i18n-attr="title=settings.fixHelpTitle;aria-label=settings.fixHelpLabel">?</button>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="sortKeys">
+          <span data-i18n="settings.sort">Sort keys</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="icon-btn" id="openFileBtn" title="Open file" data-i18n-attr="title=actions.open">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4H2v16h20V6H12z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="clearBtn" title="Clear" data-i18n-attr="title=actions.clear">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="shareBtn" title="Copy a link with this JSON (it travels in the link itself, no server)" data-i18n-attr="title=actions.share">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+      </div>
+
+      <button class="format-btn" id="formatBtn" title="Format (Ctrl+Enter / ⌘+Enter)" data-i18n="format.button" data-i18n-attr="title=format.title">Format</button>
+
+      <div class="status" id="statusBox" hidden></div>
+
+      <div class="history">
+        <div class="history-header">
+          <span data-i18n="history.title">History</span>
+          <button class="history-clear-btn" id="historyClearBtn" title="Clear history" data-i18n="history.clear" data-i18n-attr="title=history.clearTitle">Clear</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+    </aside>
+
+    <main class="editor">
+      <div class="panes">
+        <section class="pane">
+          <header>
+            <span data-i18n="input.title">Input</span>
+          </header>
+          <div class="input-wrap" id="inputWrap">
+            <div class="large-input" id="largeInput" hidden>
+              <p class="large-input-title" data-i18n="large.title">Large input</p>
+              <p id="largeInputInfo"></p>
+              <button class="copy-btn" id="largeShowBtn" type="button" data-i18n="large.show">Show the text anyway</button>
+            </div>
+            <pre class="input-highlight" id="inputHighlight" aria-hidden="true"></pre>
+            <textarea id="input" placeholder="Paste, type or drop a JSON file here..." spellcheck="false" data-i18n-attr="placeholder=input.placeholder"></textarea>
+          </div>
+        </section>
+        <section class="pane">
+          <header>
+            <span data-i18n="output.title">Output</span>
+            <div class="pane-actions">
+              <button class="copy-btn" id="expandAllBtn" title="Expand all blocks" data-i18n="output.expand" data-i18n-attr="title=output.expandTitle">Expand</button>
+              <button class="copy-btn" id="collapseAllBtn" title="Collapse all blocks" data-i18n="output.collapse" data-i18n-attr="title=output.collapseTitle">Collapse</button>
+              <button class="copy-btn" id="copyBtn" title="Copy output" data-i18n="output.copy" data-i18n-attr="title=output.copyTitle">Copy</button>
+              <button class="copy-btn" id="downloadBtn" title="Download the output as a file" data-i18n="output.download" data-i18n-attr="title=output.downloadTitle">Download</button>
+            </div>
+          </header>
+          <div class="output-tools">
+            <input type="search" id="searchInput" placeholder="Search keys or values…" aria-label="Search keys or values in the output" spellcheck="false" autocomplete="off" data-i18n-attr="placeholder=search.placeholder;aria-label=search.label">
+            <span class="search-count" id="searchCount" aria-live="polite"></span>
+            <button class="copy-btn" id="searchPrevBtn" title="Previous match (Shift+Enter)" aria-label="Previous match" data-i18n-attr="title=search.prevTitle;aria-label=search.prev">↑</button>
+            <button class="copy-btn" id="searchNextBtn" title="Next match (Enter)" aria-label="Next match" data-i18n-attr="title=search.nextTitle;aria-label=search.next">↓</button>
+            <select id="outputFormat" title="Output format (Copy and Download use it)" aria-label="Output format" data-i18n-attr="title=output.formatTitle;aria-label=output.format">
+              <option value="json" selected>JSON</option>
+              <option value="yaml">YAML</option>
+              <option value="csv">CSV</option>
+            </select>
+            <button class="copy-btn" id="diffBtn" title="Compare the output with another JSON" data-i18n="diff.button" data-i18n-attr="title=diff.buttonTitle">Compare</button>
+          </div>
+          <div class="path-bar" id="pathBar" hidden>
+            <span class="path-label" data-i18n="path.label">Path</span>
+            <code class="path-text" id="pathText"></code>
+            <button class="copy-btn" id="copyPathBtn" title="Copy the path" data-i18n="path.copy" data-i18n-attr="title=path.copyTitle">Copy</button>
+          </div>
+          <div class="output-note" id="outputNote" role="status" hidden></div>
+          <div class="json-view" id="output" data-placeholder="The formatted JSON will appear here..." role="region" aria-label="Formatted output (arrow keys move between lines)" tabindex="0" data-i18n-attr="data-placeholder=output.placeholder;aria-label=output.label"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="diff-dialog" id="diffDialog" aria-labelledby="diffTitle">
+    <h2 id="diffTitle" data-i18n="diff.title">Compare with another JSON</h2>
+    <p data-i18n="diff.intro">Paste the JSON to compare with the current output (objects by key, lists by position).</p>
+    <textarea id="diffInput" spellcheck="false" placeholder="Paste the other JSON here..." data-i18n-attr="placeholder=diff.placeholder"></textarea>
+    <div class="diff-actions">
+      <button class="copy-btn diff-run" id="diffRunBtn" type="button" title="Compare (Ctrl+Enter)" data-i18n="diff.run" data-i18n-attr="title=diff.runTitle">Compare</button>
+      <button class="copy-btn" id="diffCloseBtn" type="button" data-i18n="common.close">Close</button>
+    </div>
+    <p class="diff-summary" id="diffSummary" aria-live="polite"></p>
+    <ul class="diff-list" id="diffList"></ul>
+  </dialog>
+
+  <div class="popover" id="fixHelpPopover" hidden>
+    <p data-i18n-html="fixHelp.introHtml"><strong>Fix JSON</strong> tries to fix common problems automatically before formatting:</p>
+    <ul>
+      <li data-i18n-html="fixHelp.trailingCommasHtml">Trailing commas</li>
+      <li data-i18n-html="fixHelp.missingCommasHtml">Missing commas between items (<code>{"a": 1 "b": 2}</code>)</li>
+      <li data-i18n-html="fixHelp.singleQuotesHtml">Single quotes instead of double quotes</li>
+      <li data-i18n-html="fixHelp.unquotedKeysHtml">Unquoted keys</li>
+      <li data-i18n-html="fixHelp.commentsHtml"><code>//</code> and <code>/* */</code> comments</li>
+      <li data-i18n-html="fixHelp.pythonHtml"><code>True</code>/<code>False</code>/<code>None</code> (Python style)</li>
+      <li data-i18n-html="fixHelp.stringifiedHtml">Whole JSON in quotes (<code>"{...}"</code>) or serialized twice</li>
+      <li data-i18n-html="fixHelp.emptyValuesHtml">Empty values (<code>{text:,...}</code> becomes <code>""</code>)</li>
+      <li data-i18n-html="fixHelp.concatenatedHtml">Several loose objects (<code>{...} {...}</code>) become an array (<code>[{...}, {...}]</code>)</li>
+    </ul>
+    <button id="fixHelpClose" data-i18n="common.close">Close</button>
+  </div>
+
+  <script type="module" src="../app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      // Resolved now: by "load" app.js may have changed the address to the
+      // chosen language's page.
+      const swUrl = new URL("../sw.js", location.href);
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register(swUrl).catch(() => {
+          // Offline cache registration is optional; app still works without it.
+        });
+      });
+    }
+  </script>
+</body>
+</html>

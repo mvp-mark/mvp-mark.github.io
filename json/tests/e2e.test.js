@@ -56,17 +56,27 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--no-sandbox"] });
 
 // A page in its own browser context (fresh storage), failing the test on
-// any page error. Downloads are captured in window.__downloads.
-async function open(url = ORIGIN + "/") {
+// any page error. Downloads are captured in window.__downloads. The page
+// starts in Portuguese unless `language` says otherwise (null: let the page
+// pick it from the browser's languages, set to `browserLanguages`).
+async function open(url = ORIGIN + "/", { language = "pt", browserLanguages = ["en-US", "en"] } = {}) {
   const context = await browser.createBrowserContext();
   await context.overridePermissions(ORIGIN, ["clipboard-read", "clipboard-write", "clipboard-sanitized-write"]);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (err) => errors.push(err.message));
   page.on("console", (msg) => {
-    if (msg.type() === "error") errors.push(msg.text());
+    if (msg.type() === "error") errors.push(msg.text() + (msg.location()?.url ? ` (${msg.location().url})` : ""));
   });
   await page.setViewport({ width: 1400, height: 900 });
+  await page.evaluateOnNewDocument((languages) => {
+    Object.defineProperty(navigator, "languages", { get: () => languages });
+  }, browserLanguages);
+  if (language) {
+    await page.evaluateOnNewDocument((code) => {
+      if (!localStorage.getItem("jsonFormatter.language")) localStorage.setItem("jsonFormatter.language", code);
+    }, language);
+  }
   await page.evaluateOnNewDocument(() => {
     window.__downloads = [];
     const click = HTMLAnchorElement.prototype.click;
@@ -77,6 +87,12 @@ async function open(url = ORIGIN + "/") {
   });
   await page.goto(url, { waitUntil: "networkidle0" });
   page.done = async () => {
+    // Closing a context while its service worker is still installing can
+    // break Chrome's next createBrowserContext; let it finish first.
+    await page.evaluate(() => Promise.race([
+      navigator.serviceWorker?.ready,
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ])).catch(() => {});
     await context.close();
     assert.deepEqual(errors, [], "erros na página");
   };
@@ -87,8 +103,8 @@ const setInput = (page, text) => page.evaluate((t) => { document.getElementById(
 const status = (page) => page.$eval("#statusBox", (el) => el.textContent);
 const pathShown = (page) => page.$eval("#pathText", (el) => el.textContent);
 const waitFormatted = (page) => page.waitForFunction(() => {
-  const text = document.getElementById("statusBox").textContent;
-  return text && !text.startsWith("Processando");
+  const box = document.getElementById("statusBox");
+  return box.textContent && !box.classList.contains("busy");
 }, { timeout: 60000 });
 // The button moves as the status and history below it change height, so
 // it's clicked through the DOM rather than at screen coordinates.
@@ -304,6 +320,100 @@ test("erros e correções continuam funcionando", async () => {
   await page.click("#fixJson");
   await format(page, '{"a": [1, 2}');
   assert.match(await status(page), /^Faltava fechar o '\['/);
+  await page.done();
+});
+
+test("idioma: a URL decide; o do navegador só é oferecido", async () => {
+  const page = await open(ORIGIN + "/", { language: null, browserLanguages: ["ru-RU", "en-GB"] });
+  assert.equal(await page.$eval("html", (el) => el.lang), "pt-BR");
+  assert.equal(await page.$eval("#langHint", (el) => el.hidden), false);
+  assert.equal(await page.$eval("#langHintLink", (el) => el.textContent), "This page is also available in English.");
+  await format(page, '{"a": [1, 2}');
+
+  await page.click("#langHintLink");
+  assert.equal(await page.evaluate(() => location.pathname), "/en/");
+  assert.equal(await page.$eval("html", (el) => el.lang), "en");
+  assert.equal(await page.$eval("#langHint", (el) => el.hidden), true);
+  assert.equal(await page.$eval("#formatBtn", (el) => el.textContent), "Format");
+  assert.match(await status(page), /^The '\[' on line 1 was never closed/);
+  assert.equal(await page.$eval(".jv-warning-title", (el) => el.textContent), "A '[' was never closed: I closed it automatically");
+
+  await page.select("#language", "es");
+  assert.equal(await page.evaluate(() => location.pathname), "/es/");
+  assert.equal(await page.$eval("html", (el) => el.lang), "es");
+  assert.equal(await page.$eval("#formatBtn", (el) => el.textContent), "Formatear");
+  assert.equal(await page.$eval("#input", (el) => el.placeholder), "Pega, escribe o arrastra un archivo JSON aquí...");
+  assert.match(await status(page), /^Faltaba cerrar el '\['/);
+  assert.match(await page.$eval("#output", (el) => el.textContent), /agregado \(faltaba\)/);
+
+  // The saved choice applies at the root, but not over another language's URL.
+  await page.goto(ORIGIN + "/", { waitUntil: "networkidle0" });
+  assert.equal(await page.evaluate(() => location.pathname), "/es/");
+  assert.equal(await page.$eval(".history-item", (el) => el.title), "Haz clic para volver a cargarlo");
+  await page.goto(ORIGIN + "/de/", { waitUntil: "networkidle0" });
+  assert.equal(await page.$eval("#formatBtn", (el) => el.textContent), "Formatieren");
+  await page.done();
+
+  const dismissed = await open(ORIGIN + "/", { language: null, browserLanguages: ["de-DE"] });
+  await dismissed.click("#langHintClose");
+  await dismissed.reload({ waitUntil: "networkidle0" });
+  assert.equal(await dismissed.$eval("#langHint", (el) => el.hidden), true);
+  assert.equal(await dismissed.$eval("html", (el) => el.lang), "pt-BR");
+  await dismissed.done();
+
+  const big = await open(ORIGIN + "/?lang=en");
+  assert.equal(await big.evaluate(() => location.pathname + location.search), "/en/");
+  await format(big, BIG.replace(/\}\s*$/, ""));
+  assert.match(await status(big), /^The '\{' on line 1 was never closed/);
+  assert.match(await big.$eval("#largeInputInfo", (el) => el.textContent), /^5[.,]\d MB, [\d,]+ lines\./);
+  await big.done();
+});
+
+test("cada idioma tem sua página estática, legível sem JavaScript", async () => {
+  const fetchText = (path) => new Promise((resolve, reject) => {
+    http.get(ORIGIN + path, (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => (body += chunk));
+      res.on("end", () => resolve(body));
+    }).on("error", reject);
+  });
+  const fr = await fetchText("/fr/");
+  assert.match(fr, /<html lang="fr" data-locale="fr" data-root="\.\.\/">/);
+  assert.match(fr, /<title>JSON Formatter en ligne – Formater, valider et corriger du JSON<\/title>/);
+  assert.match(fr, /<link rel="canonical" href="https:\/\/mvp-json\.vercel\.app\/fr\/">/);
+  assert.match(fr, /<link rel="alternate" hreflang="x-default" href="https:\/\/mvp-json\.vercel\.app\/">/);
+  assert.match(fr, /<meta property="og:locale" content="fr_FR">/);
+  assert.match(fr, />Formater<\/button>/);
+  assert.match(fr, /"inLanguage": "fr"/);
+  assert.match(fr, /<option value="fr" selected>Français<\/option>/);
+  assert.doesNotMatch(fr, />Formatar</);
+
+  // Assets are found from the subfolder, with JavaScript on too.
+  const page = await open(ORIGIN + "/ja/");
+  await format(page, '{"a": 1,}');
+  assert.equal(await status(page), "自動修正を適用しました（JSON を自動修正）: クォートのないキー/値、コメント、余分または不足したカンマなど。\n末尾のカンマ（trailing commas）は使えません。");
+  await page.done();
+});
+
+test("todos os idiomas carregam sem chaves faltando", async () => {
+  const page = await open();
+  await format(page, '{"a": [1, 2}');
+  const codes = await page.$$eval("#language option", (options) => options.map((o) => o.value));
+  assert.equal(codes.length, 8);
+  for (const code of codes) {
+    await page.select("#language", code);
+    await waitFormatted(page);
+    // An untranslated key shows up as the key itself ("format.button").
+    const raw = await page.evaluate(() => {
+      const texts = [document.title, ...[...document.querySelectorAll("body *")].flatMap((el) =>
+        [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent)
+          .concat(["title", "aria-label", "placeholder", "data-placeholder"].map((a) => el.getAttribute(a) ?? "")))];
+      return texts.filter((text) => /^[a-z]+(\.[a-zA-Z0-9]+)+$/.test(text.trim()));
+    });
+    assert.deepEqual(raw, [], code);
+    assert.ok(await page.$eval("html", (el) => el.lang.startsWith(el.ownerDocument.getElementById("language").value)), code);
+  }
   await page.done();
 });
 

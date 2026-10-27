@@ -1,7 +1,99 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://mvp-json.vercel.app/</loc>
-    <lastmod>2026-10-26</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/en/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/es/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/de/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/it/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
+  </url>
+  <url>
+    <loc>https://mvp-json.vercel.app/zh/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/"/>
   </url>
 </urlset>

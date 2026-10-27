@@ -1,6 +1,7 @@
 import { analyze, unpack } from "./analyze.js";
 import { toCsv, toYaml } from "./convert.js";
 import { openHistory } from "./history-store.js";
+import { DEFAULT_LOCALE, LOCALES, getLocale, localeTag, matchLocale, setLocale, t, tIn } from "./i18n.js";
 import {
   RawNumber,
   classifyBrackets,
@@ -58,6 +59,10 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   const themeToggle = document.getElementById("themeToggle");
   const syntaxThemeEl = document.getElementById("syntaxTheme");
   const rainbowEl = document.getElementById("rainbowBrackets");
+  const languageEl = document.getElementById("language");
+  const langHint = document.getElementById("langHint");
+  const langHintLink = document.getElementById("langHintLink");
+  const langHintClose = document.getElementById("langHintClose");
 
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
@@ -65,6 +70,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   const RAINBOW_KEY = "jsonFormatter.rainbow";
   const SORT_KEY = "jsonFormatter.sortKeys";
   const OUTPUT_FORMAT_KEY = "jsonFormatter.outputFormat";
+  const LANGUAGE_KEY = "jsonFormatter.language";
+  const LANGUAGE_HINT_KEY = "jsonFormatter.languageHintDismissed";
   const BRACKET_COLOR_COUNT = 6;
 
   // Plain-text version of what the output view shows (used by copy).
@@ -75,11 +82,77 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   // Name of the file last opened, reused when downloading the output.
   let fileName = null;
 
+  // Language. Every language has its own static page, built by
+  // scripts/build-pages.js for search engines, whose <html data-locale>
+  // says which; the Portuguese one at the site root is also the default
+  // (x-default). The page's language is used, except that the root switches
+  // to the language picked before (people have one saved, crawlers don't)
+  // and ?lang=xx (older links) picks one. The browser's language is only
+  // offered (updateLanguageHint), never switched to by itself, so every
+  // URL always shows the same language to everyone.
+  // The page's own texts are marked with data-i18n (text), data-i18n-html
+  // (markup) and data-i18n-attr ("title=key;aria-label=key"); everything
+  // else calls t().
+  const isLocale = (code) => Object.prototype.hasOwnProperty.call(LOCALES, code ?? "");
+  const pageLocale = isLocale(document.documentElement.dataset.locale) ? document.documentElement.dataset.locale : DEFAULT_LOCALE;
+  const siteRoot = new URL(document.documentElement.dataset.root ?? "./", location.href);
+  const localeUrl = (code) => new URL(code === DEFAULT_LOCALE ? "" : `${code}/`, siteRoot);
+
+  function savedLocale() {
+    try {
+      const saved = localStorage.getItem(LANGUAGE_KEY);
+      return isLocale(saved) ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const requestedLocale = new URLSearchParams(location.search).get("lang");
+  setLocale(isLocale(requestedLocale) ? requestedLocale
+    : pageLocale === DEFAULT_LOCALE && savedLocale() ? savedLocale()
+    : pageLocale);
+
+  // Relative links in <head> would resolve against the new address once
+  // showLocaleInUrl changes it (the browser fetches the icon again), so
+  // they're made absolute first.
+  document.querySelectorAll("link[href]").forEach((link) => link.setAttribute("href", link.href));
+
+  // Shows the current language's page address (no reload), so it can be
+  // bookmarked and shared.
+  function showLocaleInUrl() {
+    const url = localeUrl(getLocale());
+    url.hash = location.hash;
+    if (url.href !== location.href) window.history.replaceState(null, "", url);
+  }
+
+  function translatePage() {
+    document.documentElement.lang = localeTag();
+    document.title = t("page.title");
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+      el.innerHTML = t(el.dataset.i18nHtml);
+    });
+    document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+      el.dataset.i18nAttr.split(";").forEach((pair) => {
+        const [attr, key] = pair.split("=");
+        el.setAttribute(attr, t(key));
+      });
+    });
+  }
+
+  languageEl.value = getLocale();
+  if (getLocale() !== pageLocale) {
+    translatePage();
+    showLocaleInUrl();
+  }
+
   function applyTheme(theme) {
     const selected = theme === "light" ? "light" : "dark";
     document.body.dataset.theme = selected;
-    themeToggle.textContent = selected === "dark" ? "☀️ Light" : "🌙 Dark";
-    themeToggle.setAttribute("aria-label", selected === "dark" ? "Switch to light theme" : "Switch to dark theme");
+    themeToggle.textContent = t(selected === "dark" ? "theme.toLight" : "theme.toDark");
+    themeToggle.setAttribute("aria-label", t(selected === "dark" ? "theme.toLightLabel" : "theme.toDarkLabel"));
     try {
       localStorage.setItem(THEME_KEY, selected);
     } catch {
@@ -220,9 +293,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (!large) return;
     let lines = 1;
     for (let i = largeText.indexOf("\n"); i !== -1; i = largeText.indexOf("\n", i + 1)) lines++;
-    const mb = (new Blob([largeText]).size / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-    largeInputInfo.textContent = `${mb} MB, ${lines.toLocaleString("pt-BR")} linhas. Para não travar o navegador, o texto não é ` +
-      "mostrado aqui; formatar, buscar, copiar e baixar funcionam normalmente.";
+    const mb = (new Blob([largeText]).size / 1048576).toLocaleString(localeTag(), { maximumFractionDigits: 1 });
+    largeInputInfo.textContent = t("large.info", { size: mb, lines: lines.toLocaleString(localeTag()) });
   }
 
   // The value is also set from code (history, file, clear, fixes); hook the
@@ -301,7 +373,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (entries.length === 0) {
       const empty = document.createElement("li");
       empty.className = "history-empty";
-      empty.textContent = "Nenhum JSON formatado ainda.";
+      empty.textContent = t("history.empty");
       historyListEl.appendChild(empty);
       return;
     }
@@ -309,11 +381,11 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     entries.forEach((entry) => {
       const li = document.createElement("li");
       li.className = "history-item";
-      li.title = "Clique para recarregar";
+      li.title = t("history.reload");
 
       const time = document.createElement("span");
       time.className = "history-time";
-      time.textContent = new Date(entry.timestamp).toLocaleString("pt-BR");
+      time.textContent = new Date(entry.timestamp).toLocaleString(localeTag());
 
       const preview = document.createElement("span");
       preview.className = "history-preview";
@@ -433,7 +505,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "jv-toggle";
-      toggle.setAttribute("aria-label", "Recolher/expandir bloco");
+      toggle.setAttribute("aria-label", t("tree.toggle"));
       toggle.setAttribute("aria-expanded", "true");
       node.appendChild(toggle);
     }
@@ -442,9 +514,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
     const summary = document.createElement("span");
     summary.className = "jv-summary";
-    summary.textContent = isArray
-      ? `${n} ${n === 1 ? "item" : "itens"}`
-      : `${n} ${n === 1 ? "chave" : "chaves"}`;
+    summary.textContent = t(isArray ? "tree.items" : "tree.keys", { count: n });
     node.appendChild(summary);
 
     const children = document.createElement(pretty ? "div" : "span");
@@ -491,8 +561,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       }
       const left = n - next;
       moreLine.lastChild.textContent = left <= CHUNK_SIZE
-        ? `Mostrar ${left === 1 ? "o último" : `os ${left} restantes`}`
-        : `Mostrar mais ${CHUNK_SIZE} (faltam ${left})`;
+        ? t("tree.showRest", { count: left })
+        : t("tree.showMore", { chunk: CHUNK_SIZE, left });
     };
     pendingBlocks.set(node, fill);
     if (pretty && depth > 0 && budget.left <= 0) {
@@ -542,7 +612,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     outputEl.classList.remove("has-error");
     outputEl.replaceChildren(root);
     outputChanged(value);
-    if (csvFailed) showNote("CSV precisa de um array (de objetos, de listas ou de valores); a saída está em JSON.");
+    if (csvFailed) showNote(t("note.csvNeedsArray"));
   }
 
   // Also drops the result of any format() still running in the worker.
@@ -672,53 +742,43 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
     const items = [];
     const summary = [];
+    const spotParams = (sp) => ({ outer: sp.outerKey, inner: sp.innerKey, line: sp.line + lineShift });
     spots.forEach((sp) => {
-      items.push(sp.openerOnly
-        ? `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor (${sp.innerKey}) ` +
-          `e faltava abrir o '{': coloquei o '{' antes de ${sp.innerKey} (o '}' que fecha já estava lá).`
-        : `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor (${sp.innerKey}) ` +
-          `sem '{ }': ficou ${sp.outerKey}: { ${sp.innerKey}: … }.`);
+      items.push(t(sp.openerOnly ? "fix.item.openerOnly" : "fix.item.wrapped", spotParams(sp)));
     });
     if (spots.length === 1) {
-      const sp = spots[0];
-      summary.push(sp.openerOnly
-        ? `Faltava abrir o '{' no valor da chave ${sp.outerKey} (linha ${sp.line + lineShift}), que recebia outra chave; coloquei o '{'.`
-        : `A chave ${sp.outerKey} (linha ${sp.line + lineShift}) recebia outra chave como valor; coloquei '{ }' em volta.`);
+      summary.push(t(spots[0].openerOnly ? "fix.summary.openerOnly" : "fix.summary.wrapped", spotParams(spots[0])));
     } else if (spots.length) {
-      summary.push(`${spots.length} chaves recebiam outra chave como valor; coloquei as chaves que faltavam.`);
+      summary.push(t("fix.summary.manyKeys", { count: spots.length }));
     }
     if (closed) {
       closed.inserts.forEach((ins) => {
         const at = openAt(ins);
-        items.push(`O '${opener(ins)}' da linha ${at.line}, coluna ${at.col} não tinha fechamento; ` +
-          `o '${ins.char}' foi adicionado ${ins.where}.`);
+        items.push(t("fix.item.closer", { open: opener(ins), line: at.line, col: at.col, char: ins.char, where: ins.where }));
       });
       const first = closed.inserts[0];
       summary.push(closed.inserts.length === 1
-        ? `Faltava fechar o '${opener(first)}' da linha ${openAt(first).line}: o '${first.char}' foi adicionado ${first.where}.`
-        : `Faltavam ${closed.inserts.length} fechamentos; foram adicionados automaticamente.`);
+        ? t("fix.summary.closer", { open: opener(first), line: openAt(first).line, char: first.char, where: first.where })
+        : t("fix.summary.closers", { count: closed.inserts.length }));
     }
 
     if (commas.length) {
       commas.forEach((c) => {
         const at = lineCol(shown, toShown(c.pos));
-        items.push(`Faltava uma vírgula na linha ${at.line}, coluna ${at.col}, antes de ${c.before}; foi adicionada.`);
+        items.push(t("fix.item.comma", { line: at.line, col: at.col, before: c.before }));
       });
       const at = lineCol(shown, toShown(commas[0].pos));
       summary.push(commas.length === 1
-        ? `Faltava uma vírgula na linha ${at.line}, antes de ${commas[0].before}; foi adicionada.`
-        : `Faltavam ${commas.length} vírgulas (a primeira na linha ${at.line}); foram adicionadas.`);
+        ? t("fix.summary.comma", { line: at.line, before: commas[0].before })
+        : t("fix.summary.commas", { count: commas.length, line: at.line }));
     }
 
     let titleText;
-    if ([spots.length, closed, commas.length].filter(Boolean).length > 1) titleText = "Corrigi o JSON automaticamente";
-    else if (commas.length === 1) titleText = "Faltava uma vírgula: adicionei";
-    else if (commas.length) titleText = `Faltavam ${commas.length} vírgulas: adicionei`;
-    else if (spots.length === 1 && spots[0].openerOnly) titleText = `Faltava abrir um '{': a chave ${spots[0].outerKey} recebia outra chave como valor`;
-    else if (spots.length === 1) titleText = "Uma chave recebia outra chave como valor: coloquei as '{ }'";
-    else if (spots.length) titleText = `${spots.length} chaves recebiam outra chave como valor: corrigi as chaves`;
-    else if (closed.inserts.length === 1) titleText = `Faltava fechar um '${opener(closed.inserts[0])}': fechei automaticamente`;
-    else titleText = `Faltavam ${closed.inserts.length} fechamentos: fechei automaticamente`;
+    if ([spots.length, closed, commas.length].filter(Boolean).length > 1) titleText = t("fix.title.many");
+    else if (commas.length) titleText = t("fix.title.commas", { count: commas.length });
+    else if (spots.length === 1 && spots[0].openerOnly) titleText = t("fix.title.openerOnly", { outer: spots[0].outerKey });
+    else if (spots.length) titleText = t("fix.title.keys", { count: spots.length });
+    else titleText = t("fix.title.closers", { count: closed.inserts.length, open: opener(closed.inserts[0]) });
 
     showOutput(fix.value, indentFor(templateEl.value), fix.marks);
 
@@ -741,15 +801,17 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (alternative) {
       const hint = document.createElement("div");
       hint.className = "jv-warning-hint";
-      hint.textContent = "Atenção: pela indentação, o lugar certo parece ser outro: " +
-        alternative.inserts.map((ins) => `o '${ins.char}' do '${opener(ins)}' da linha ${openAt(ins).line} ${ins.where}`).join("; ") +
-        ".";
+      hint.textContent = t("fix.alternative", {
+        list: alternative.inserts
+          .map((ins) => t("fix.alternativeItem", { char: ins.char, open: opener(ins), line: openAt(ins).line, where: ins.where }))
+          .join("; "),
+      });
       banner.appendChild(hint);
     }
 
     const note = document.createElement("div");
     note.className = "jv-error-note";
-    note.textContent = "Confira se a correção ficou certa (destacada abaixo). A entrada não foi alterada.";
+    note.textContent = t("fix.check");
     banner.appendChild(note);
 
     const actions = document.createElement("div");
@@ -762,12 +824,12 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       btn.addEventListener("click", () => applyFixToInput(input, source, offset, fixed));
       actions.appendChild(btn);
     };
-    addButton("Aplicar a correção na entrada", fix.fixed);
-    if (alternative) addButton("Inserir onde a indentação indica", alternative.fixed);
+    addButton(t("fix.apply"), fix.fixed);
+    if (alternative) addButton(t("fix.applyAlternative"), alternative.fixed);
     banner.appendChild(actions);
 
     outputEl.prepend(banner);
-    return summary.join(" ") + (alternative ? " Pela indentação, o lugar certo parece ser outro (veja na saída)." : " Confira na saída.");
+    return [...summary, t(alternative ? "fix.seeAlternative" : "fix.seeOutput")].join(" ");
   }
 
   // Missing closing bracket(s): explains which bracket was left open and
@@ -789,9 +851,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     title.className = "jv-error-title";
     const first = inserts[0];
     const firstOpen = lineCol(shown, toShown(first.open));
-    title.textContent = inserts.length === 1
-      ? `Falta fechar o '${first.char === "}" ? "{" : "["}' aberto na linha ${firstOpen.line}`
-      : `Faltam ${inserts.length} fechamentos de chaves/colchetes`;
+    title.textContent = t("repair.title", { count: inserts.length, open: first.char === "}" ? "{" : "[", line: firstOpen.line });
     box.appendChild(title);
 
     const list = document.createElement("ul");
@@ -799,8 +859,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     inserts.forEach((ins) => {
       const open = lineCol(shown, toShown(ins.open));
       const li = document.createElement("li");
-      li.textContent = `O '${ins.char === "}" ? "{" : "["}' da linha ${open.line}, coluna ${open.col} nunca foi fechado. ` +
-        `O '${ins.char}' que falta deveria vir ${ins.where}.`;
+      li.textContent = t("repair.item", { open: ins.char === "}" ? "{" : "[", line: open.line, col: open.col, char: ins.char, where: ins.where });
       list.appendChild(li);
     });
     box.appendChild(list);
@@ -808,7 +867,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (!fromInput) {
       const note = document.createElement("div");
       note.className = "jv-error-note";
-      note.textContent = "O erro está no JSON que vinha entre aspas; linha e coluna contam a partir do conteúdo de dentro das aspas.";
+      note.textContent = t("error.quotedNote");
       box.appendChild(note);
     }
 
@@ -822,14 +881,14 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     const applyBtn = document.createElement("button");
     applyBtn.type = "button";
     applyBtn.className = "copy-btn jv-error-apply";
-    applyBtn.textContent = inserts.length === 1 ? `Inserir o '${first.char}' na entrada` : "Inserir os fechamentos na entrada";
+    applyBtn.textContent = t("repair.apply", { count: inserts.length, char: first.char });
     applyBtn.addEventListener("click", () => applyFixToInput(input, source, offset, repair.fixed));
     actions.appendChild(applyBtn);
     if (fromInput) {
       const jump = document.createElement("button");
       jump.type = "button";
       jump.className = "copy-btn";
-      jump.textContent = "Mostrar na entrada";
+      jump.textContent = t("error.showInInput");
       jump.addEventListener("click", () => {
         const pos = toShown(firstInsert.pos);
         showFullInput();
@@ -843,7 +902,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
     const previewTitle = document.createElement("div");
     previewTitle.className = "jv-error-preview-title";
-    previewTitle.textContent = "Como fica o JSON com o fechamento no lugar sugerido (destacado):";
+    previewTitle.textContent = t("repair.previewTitle");
     box.appendChild(previewTitle);
 
     const preview = document.createElement("div");
@@ -862,8 +921,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
     const where = lineCol(shown, toShown(firstInsert.pos));
     setStatus(
-      `${title.textContent}: o '${first.char}' que falta deveria vir ${first.where} ` +
-        `(linha ${where.line}, coluna ${where.col}). Veja a sugestão na saída.`,
+      t("repair.status", { title: title.textContent, char: first.char, where: first.where, line: where.line, col: where.col }),
       "error"
     );
   }
@@ -893,10 +951,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (!box) return;
     const note = document.createElement("div");
     note.className = "jv-error-reformatted";
-    note.textContent = (unwrapped
-      ? "A entrada estava entre aspas e em uma linha só; tirei as aspas e reorganizei com indentação"
-      : "A entrada estava em uma linha só; reorganizei com indentação") +
-      " para facilitar a edição. Nada além dos espaços mudou (Ctrl+Z desfaz).";
+    note.textContent = t(unwrapped ? "reformat.unwrapped" : "reformat.oneLine");
     box.prepend(note);
   }
 
@@ -922,9 +977,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     box.className = "jv-error";
     const title = document.createElement("div");
     title.className = "jv-error-title";
-    title.textContent = where
-      ? `Erro na linha ${where.line}, coluna ${where.col}`
-      : "Erro ao interpretar o JSON";
+    title.textContent = where ? t("error.at", { line: where.line, col: where.col }) : t("error.generic");
     const msg = document.createElement("div");
     msg.className = "jv-error-msg";
     msg.textContent = message;
@@ -933,7 +986,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (!fromInput) {
       const note = document.createElement("div");
       note.className = "jv-error-note";
-      note.textContent = "O erro está no JSON que vinha entre aspas; linha e coluna contam a partir do conteúdo de dentro das aspas.";
+      note.textContent = t("error.quotedNote");
       box.appendChild(note);
     }
 
@@ -943,7 +996,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       const jump = document.createElement("button");
       jump.type = "button";
       jump.className = "copy-btn jv-error-jump";
-      jump.textContent = "Mostrar na entrada";
+      jump.textContent = t("error.showInInput");
       jump.addEventListener("click", () => {
         showFullInput();
         inputEl.focus({ preventScroll: true });
@@ -957,7 +1010,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     outputEl.replaceChildren(box);
     outputChanged(undefined);
     setStatus(
-      where ? `Erro na linha ${where.line}, coluna ${where.col}: ${message}` : `Erro ao interpretar o JSON: ${message}`,
+      `${title.textContent}: ${message}`,
       "error"
     );
   }
@@ -1006,8 +1059,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
   function noteIfPartial(complete) {
     if (complete) return;
-    showNote(`O JSON é grande demais para expandir tudo de uma vez: parei após ${EXPAND_ALL_LINES.toLocaleString("pt-BR")} linhas. ` +
-      "Os blocos que ficaram recolhidos abrem com um clique.");
+    showNote(t("note.expandPartial", { lines: EXPAND_ALL_LINES.toLocaleString(localeTag()) }));
   }
 
   // Keys/indices from the root to the value on `line`, read from the view.
@@ -1098,8 +1150,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   function updateSearchCount() {
     const { matches, truncated, current } = search;
     if (!searchInput.value) searchCount.textContent = "";
-    else if (outputValue === undefined) searchCount.textContent = "sem saída";
-    else if (!matches.length) searchCount.textContent = "nada encontrado";
+    else if (outputValue === undefined) searchCount.textContent = t("search.noOutput");
+    else if (!matches.length) searchCount.textContent = t("search.none");
     else searchCount.textContent = `${current < 0 ? "–" : current + 1}/${matches.length}${truncated ? "+" : ""}`;
   }
 
@@ -1255,7 +1307,6 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   // "Comparar": differences between the output's value and another JSON,
   // read with the same settings. Clicking one shows it in the output.
   const DIFF_LIMIT = 1000;
-  const DIFF_KIND = { added: "adicionado", removed: "removido", changed: "alterado" };
 
   // Entry positions (as revealPath takes) of the longest prefix of `keys`
   // that exists in `value`.
@@ -1281,7 +1332,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     diffList.replaceChildren();
     const text = diffInput.value;
     if (!text.trim()) {
-      diffSummary.textContent = "Cole o JSON a comparar.";
+      diffSummary.textContent = t("diff.empty");
       return;
     }
     const result = analyze(text, { spec: "json5", fix: fixEl.checked, indent: "  ", reformatted: true });
@@ -1292,26 +1343,31 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       other = result.fail.closed.value;
     } else {
       const { source, info } = result.fail;
-      const where = info.pos == null ? "" : ` (linha ${lineCol(source, info.pos).line})`;
-      diffSummary.textContent = `Não consegui ler esse JSON${where}: ${info.message}`;
+      diffSummary.textContent = info.pos == null
+        ? t("diff.unreadable", { message: info.message })
+        : t("diff.unreadableAt", { line: lineCol(source, info.pos).line, message: info.message });
       return;
     }
 
     const { diffs, truncated } = diffValues(outputValue, other, DIFF_LIMIT);
     const count = (kind) => diffs.filter((d) => d.kind === kind).length;
     diffSummary.textContent = diffs.length === 0
-      ? "Nenhuma diferença."
-      : `${diffs.length}${truncated ? "+" : ""} diferença${diffs.length === 1 ? "" : "s"}: ` +
-        `${count("added")} adicionada(s), ${count("removed")} removida(s), ${count("changed")} alterada(s) ` +
-        "(da saída atual para o JSON colado).";
+      ? t("diff.none")
+      : t("diff.summary", {
+        count: diffs.length,
+        total: diffs.length + (truncated ? "+" : ""),
+        added: count("added"),
+        removed: count("removed"),
+        changed: count("changed"),
+      });
 
     diffs.forEach((diff) => {
       const li = document.createElement("li");
       li.className = `diff-item diff-${diff.kind}`;
       const button = document.createElement("button");
       button.type = "button";
-      button.title = "Mostrar na saída";
-      button.append(span("diff-kind", DIFF_KIND[diff.kind]), span("diff-path", formatPath(diff.keys)));
+      button.title = t("diff.showInOutput");
+      button.append(span("diff-kind", t(`diff.kind.${diff.kind}`)), span("diff-path", formatPath(diff.keys)));
       const values = document.createElement("span");
       values.className = "diff-values";
       values.textContent = diff.kind === "changed"
@@ -1332,7 +1388,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
   diffBtn.addEventListener("click", () => {
     if (outputValue === undefined) {
-      showNote("Formate um JSON primeiro; a comparação é feita com a saída.");
+      showNote(t("diff.needOutput"));
       return;
     }
     diffDialog.showModal();
@@ -1438,7 +1494,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       return;
     }
 
-    setStatus("Processando…", "busy");
+    setStatus(t("status.processing"), "busy");
     analyzeInWorker(raw, options)
       .catch(() => (seq === formatSeq ? analyze(raw, options) : null))
       .then((result) => {
@@ -1455,11 +1511,11 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     // "Ordenar chaves" applies to what's shown; repair marks are keyed by
     // path, so they still match after sorting.
     const shown = (value) => (options.sort ? sortKeys(value) : value);
-    const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas sobrando ou faltando etc.";
+    const FIX_NOTE = t("status.fixNote");
 
     // Output shown: status notes, then history.
     const finish = (notes, ok) => {
-      setStatus(notes.length ? notes.join("\n") : "JSON válido.", ok && !notes.length ? "ok" : "error");
+      setStatus(notes.length ? notes.join("\n") : t("status.valid"), ok && !notes.length ? "ok" : "error");
       addToHistory({
         timestamp: Date.now(),
         template: templateEl.value,
@@ -1487,7 +1543,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
     const { value, usedFix, joined, repaired } = result.ok;
     const notes = [];
-    if (joined) notes.push(`${value.length} objetos separados foram agrupados em um array.`);
+    if (joined) notes.push(t("status.joined", { count: value.length }));
     if (repaired) {
       notes.push(showFixedOutput({ ...repaired, value: shown(value) }, repaired.source, repaired.offset));
     } else {
@@ -1530,7 +1586,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       showLargeInput = false;
       inputEl.value = text;
       format();
-    }, () => setStatus(`Não consegui ler o arquivo ${file.name}.`, "error"));
+    }, () => setStatus(t("status.fileError", { name: file.name }), "error"));
   }
 
   openFileBtn.addEventListener("click", () => fileInput.click());
@@ -1574,7 +1630,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       if (!ok) return false;
     }
     const label = button.textContent;
-    button.textContent = "Copiado!";
+    button.textContent = t("copy.done");
     setTimeout(() => (button.textContent = label), 1200);
     return true;
   }
@@ -1606,26 +1662,26 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   shareBtn.addEventListener("click", async () => {
     const text = inputEl.value;
     if (!text.trim()) {
-      setStatus("Nada para compartilhar: a entrada está vazia.", "error");
+      setStatus(t("share.empty"), "error");
       return;
     }
     let code;
     try {
       code = await encodeShare(text);
     } catch {
-      setStatus("Este navegador não consegue gerar o link (sem suporte a compressão).", "error");
+      setStatus(t("share.unsupported"), "error");
       return;
     }
     if (code.length > SHARE_MAX_CHARS) {
-      setStatus("O JSON é grande demais para caber num link; use Baixar e envie o arquivo.", "error");
+      setStatus(t("share.tooBig"), "error");
       return;
     }
     const link = location.origin + location.pathname + SHARE_PREFIX + code;
     try {
       await navigator.clipboard.writeText(link);
-      setStatus("Link copiado. O JSON vai no próprio link (depois do #) e não passa por nenhum servidor.", "ok");
+      setStatus(t("share.copied"), "ok");
     } catch {
-      window.prompt("Copie o link:", link);
+      window.prompt(t("share.prompt"), link);
     }
   });
 
@@ -1639,12 +1695,61 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       inputEl.value = await decodeShare(code);
       format();
     } catch {
-      setStatus("O link compartilhado está incompleto ou corrompido.", "error");
+      setStatus(t("share.broken"), "error");
     }
   }
 
   loadSharedInput();
   window.addEventListener("hashchange", loadSharedInput);
+
+  // Switching language (and remembering it) redraws every text in place,
+  // formatting again when there's input (messages and the output's labels
+  // are built when formatting), and moves to that language's address.
+  function switchLocale(code) {
+    setLocale(code);
+    storeSetting(LANGUAGE_KEY, getLocale());
+    languageEl.value = getLocale();
+    translatePage();
+    showLocaleInUrl();
+    applyTheme(document.body.dataset.theme);
+    updateLargeInput();
+    updateLanguageHint();
+    renderHistory();
+    if (inputEl.value.trim()) format();
+    else updateSearchCount();
+  }
+
+  languageEl.addEventListener("change", () => switchLocale(languageEl.value));
+
+  // Offers the browser's language, written in that language, when the page
+  // is in another one and no language was picked yet.
+  function updateLanguageHint() {
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(LANGUAGE_HINT_KEY) === "1";
+    } catch {
+      // storage unavailable; ignore
+    }
+    const suggested = matchLocale(navigator.languages ?? [navigator.language]);
+    langHint.hidden = dismissed || savedLocale() !== null || suggested === null || suggested === getLocale();
+    if (langHint.hidden) return;
+    langHintLink.textContent = tIn(suggested, "lang.hint");
+    langHintLink.lang = LOCALES[suggested].tag;
+    langHintLink.href = localeUrl(suggested).href;
+    langHintLink.dataset.locale = suggested;
+  }
+
+  langHintLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchLocale(langHintLink.dataset.locale);
+  });
+
+  langHintClose.addEventListener("click", () => {
+    storeSetting(LANGUAGE_HINT_KEY, "1");
+    updateLanguageHint();
+  });
+
+  updateLanguageHint();
 
   fixHelpBtn.addEventListener("click", () => (fixHelpPopover.hidden = false));
   fixHelpClose.addEventListener("click", () => (fixHelpPopover.hidden = true));

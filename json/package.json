@@ -2,10 +2,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/parser.test.js && node tests/analyze.test.js && node tests/convert.test.js",
+    "test": "node tests/parser.test.js && node tests/analyze.test.js && node tests/convert.test.js && node tests/i18n.test.js",
     "test:e2e": "node tests/e2e.test.js",
+    "build-pages": "node scripts/build-pages.js",
     "sw-version": "node scripts/sw-version.js",
-    "check": "npm test && node scripts/sw-version.js --check"
+    "check": "npm test && node scripts/build-pages.js --check && node scripts/sw-version.js --check"
   },
   "devDependencies": {
     "puppeteer-core": "23.11.1"

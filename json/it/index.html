@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it" data-locale="it" data-root="../">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Formatter online – Formatta, valida e correggi JSON</title>
+<meta name="description" content="Formatta, valida e correggi JSON online, gratis e direttamente nel browser. Corregge virgole finali, apici singoli, chiavi senza virgolette e commenti, con supporto per RFC 8259, ECMA-404 e JSON5.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Marcus Vinícius Peixoto Paulo">
+<meta name="theme-color" content="#0f172a">
+<link rel="canonical" href="https://mvp-json.vercel.app/it/">
+<!-- i18n:alternates (scripts/build-pages.js) -->
+<link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/">
+<link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/">
+<link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/">
+<link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/">
+<link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/">
+<link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/">
+<link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/">
+<link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/">
+<link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="de_DE">
+<meta property="og:locale:alternate" content="ja_JP">
+<meta property="og:locale:alternate" content="zh_CN">
+<!-- /i18n:alternates -->
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+<meta property="og:site_name" content="JSON Formatter">
+<meta property="og:title" content="JSON Formatter online – Formatta, valida e correggi JSON">
+<meta property="og:description" content="Formatta, valida e correggi JSON online, gratis e direttamente nel browser.">
+<meta property="og:url" content="https://mvp-json.vercel.app/it/">
+<meta property="og:image" content="https://mvp-json.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="JSON Formatter – formatta, valida e correggi JSON online">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JSON Formatter online – Formatta, valida e correggi JSON">
+<meta name="twitter:description" content="Formatta, valida e correggi JSON online, gratis e direttamente nel browser.">
+<meta name="twitter:image" content="https://mvp-json.vercel.app/og-image.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "JSON Formatter",
+  "url": "https://mvp-json.vercel.app/it/",
+  "description": "Formatta, valida e correggi JSON online, gratis e direttamente nel browser.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "it",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "BRL"
+  },
+  "featureList": [
+    "Formattazione con indentazione configurabile",
+    "Validazione RFC 8259, RFC 4627, ECMA-404 e JSON5",
+    "Correzione automatica di JSON non valido",
+    "Evidenziazione della sintassi e parentesi colorate",
+    "Ricerca per chiave o valore, con il percorso (JSONPath) di ogni risultato",
+    "Confronto tra due JSON",
+    "Conversione in YAML e CSV",
+    "Link di condivisione senza server",
+    "Funziona offline"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "Marcus Vinícius Peixoto Paulo"
+  }
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-theme="dark" data-syntax="default" data-rainbow="on">
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="brand">JSON Formatter</h1>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Passa al tema chiaro" data-i18n="theme.toLight" data-i18n-attr="aria-label=theme.toLightLabel">☀️ Chiaro</button>
+      <p class="lang-hint" id="langHint" hidden><a id="langHintLink" href="#"></a><button type="button" id="langHintClose" aria-label="Chiudi" data-i18n-attr="aria-label=common.close">×</button></p>
+
+      <div class="field">
+        <label for="language" data-i18n="settings.language">Lingua</label>
+        <select id="language">
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="it" selected>Italiano</option>
+          <option value="ja">日本語</option>
+          <option value="zh">简体中文</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="template" data-i18n="settings.template">Indentazione</label>
+        <select id="template">
+          <option value="compact" data-i18n="template.compact">Compatto (senza spazi)</option>
+          <option value="1" data-i18n="template.1">1 spazio</option>
+          <option value="2" data-i18n="template.2">2 spazi</option>
+          <option value="3" selected data-i18n="template.3">3 spazi</option>
+          <option value="4" data-i18n="template.4">4 spazi</option>
+          <option value="tab" data-i18n="template.tab">Tabulazione</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="spec" data-i18n="settings.spec">Specifica JSON</label>
+        <select id="spec">
+          <option value="rfc8259" selected>RFC 8259</option>
+          <option value="rfc4627">RFC 4627</option>
+          <option value="ecma404">ECMA-404</option>
+          <option value="json5">JSON5</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="syntaxTheme" data-i18n="settings.colors">Colori del JSON</label>
+        <select id="syntaxTheme">
+          <option value="default" selected data-i18n="colors.default">Predefinito (VS Code)</option>
+          <option value="github">GitHub</option>
+          <option value="monokai">Monokai</option>
+          <option value="dracula">Dracula</option>
+          <option value="solarized">Solarized</option>
+          <option value="none" data-i18n="colors.none">Senza colori</option>
+        </select>
+        <div class="syntax-preview" aria-hidden="true"><span class="jv-bracket jv-depth-0">{</span><span class="jv-key">"nome"</span>: <span class="jv-str">"Ana"</span>, <span class="jv-key">"idade"</span>: <span class="jv-num">31</span>, <span class="jv-key">"ativo"</span>: <span class="jv-bool">true</span>, <span class="jv-key">"tags"</span>: <span class="jv-bracket jv-depth-1">[</span><span class="jv-null">null</span><span class="jv-bracket jv-depth-1">]</span><span class="jv-bracket jv-depth-0">}</span></div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rainbowBrackets" checked>
+          <span data-i18n="settings.rainbow">Parentesi colorate</span>
+        </label>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="fixJson" checked>
+          <span data-i18n="settings.fix">Correggi JSON</span>
+        </label>
+        <button class="help-btn" id="fixHelpBtn" title="Che cos’è Correggi JSON?" aria-label="Aiuto su Correggi JSON" data-i18n-attr="title=settings.fixHelpTitle;aria-label=settings.fixHelpLabel">?</button>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="sortKeys">
+          <span data-i18n="settings.sort">Ordina le chiavi</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="icon-btn" id="openFileBtn" title="Apri file" data-i18n-attr="title=actions.open">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4H2v16h20V6H12z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="clearBtn" title="Svuota" data-i18n-attr="title=actions.clear">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="shareBtn" title="Copia un link con questo JSON (viaggia nel link stesso, senza server)" data-i18n-attr="title=actions.share">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+      </div>
+
+      <button class="format-btn" id="formatBtn" title="Formatta (Ctrl+Invio / ⌘+Invio)" data-i18n="format.button" data-i18n-attr="title=format.title">Formatta</button>
+
+      <div class="status" id="statusBox" hidden></div>
+
+      <div class="history">
+        <div class="history-header">
+          <span data-i18n="history.title">Cronologia</span>
+          <button class="history-clear-btn" id="historyClearBtn" title="Svuota la cronologia" data-i18n="history.clear" data-i18n-attr="title=history.clearTitle">Svuota</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+    </aside>
+
+    <main class="editor">
+      <div class="panes">
+        <section class="pane">
+          <header>
+            <span data-i18n="input.title">Input</span>
+          </header>
+          <div class="input-wrap" id="inputWrap">
+            <div class="large-input" id="largeInput" hidden>
+              <p class="large-input-title" data-i18n="large.title">Input di grandi dimensioni</p>
+              <p id="largeInputInfo"></p>
+              <button class="copy-btn" id="largeShowBtn" type="button" data-i18n="large.show">Mostra comunque il testo</button>
+            </div>
+            <pre class="input-highlight" id="inputHighlight" aria-hidden="true"></pre>
+            <textarea id="input" placeholder="Incolla, scrivi o trascina qui un file JSON..." spellcheck="false" data-i18n-attr="placeholder=input.placeholder"></textarea>
+          </div>
+        </section>
+        <section class="pane">
+          <header>
+            <span data-i18n="output.title">Output</span>
+            <div class="pane-actions">
+              <button class="copy-btn" id="expandAllBtn" title="Espandi tutti i blocchi" data-i18n="output.expand" data-i18n-attr="title=output.expandTitle">Espandi</button>
+              <button class="copy-btn" id="collapseAllBtn" title="Comprimi tutti i blocchi" data-i18n="output.collapse" data-i18n-attr="title=output.collapseTitle">Comprimi</button>
+              <button class="copy-btn" id="copyBtn" title="Copia l’output" data-i18n="output.copy" data-i18n-attr="title=output.copyTitle">Copia</button>
+              <button class="copy-btn" id="downloadBtn" title="Scarica l’output come file" data-i18n="output.download" data-i18n-attr="title=output.downloadTitle">Scarica</button>
+            </div>
+          </header>
+          <div class="output-tools">
+            <input type="search" id="searchInput" placeholder="Cerca chiave o valore…" aria-label="Cerca chiave o valore nell’output" spellcheck="false" autocomplete="off" data-i18n-attr="placeholder=search.placeholder;aria-label=search.label">
+            <span class="search-count" id="searchCount" aria-live="polite"></span>
+            <button class="copy-btn" id="searchPrevBtn" title="Risultato precedente (Maiusc+Invio)" aria-label="Risultato precedente" data-i18n-attr="title=search.prevTitle;aria-label=search.prev">↑</button>
+            <button class="copy-btn" id="searchNextBtn" title="Risultato successivo (Invio)" aria-label="Risultato successivo" data-i18n-attr="title=search.nextTitle;aria-label=search.next">↓</button>
+            <select id="outputFormat" title="Formato di output (usato da Copia e Scarica)" aria-label="Formato di output" data-i18n-attr="title=output.formatTitle;aria-label=output.format">
+              <option value="json" selected>JSON</option>
+              <option value="yaml">YAML</option>
+              <option value="csv">CSV</option>
+            </select>
+            <button class="copy-btn" id="diffBtn" title="Confronta l’output con un altro JSON" data-i18n="diff.button" data-i18n-attr="title=diff.buttonTitle">Confronta</button>
+          </div>
+          <div class="path-bar" id="pathBar" hidden>
+            <span class="path-label" data-i18n="path.label">Percorso</span>
+            <code class="path-text" id="pathText"></code>
+            <button class="copy-btn" id="copyPathBtn" title="Copia il percorso" data-i18n="path.copy" data-i18n-attr="title=path.copyTitle">Copia</button>
+          </div>
+          <div class="output-note" id="outputNote" role="status" hidden></div>
+          <div class="json-view" id="output" data-placeholder="Il JSON formattato apparirà qui..." role="region" aria-label="Output formattato (le frecce scorrono le righe)" tabindex="0" data-i18n-attr="data-placeholder=output.placeholder;aria-label=output.label"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="diff-dialog" id="diffDialog" aria-labelledby="diffTitle">
+    <h2 id="diffTitle" data-i18n="diff.title">Confronta con un altro JSON</h2>
+    <p data-i18n="diff.intro">Incolla il JSON da confrontare con l’output attuale (oggetti per chiave, liste per posizione).</p>
+    <textarea id="diffInput" spellcheck="false" placeholder="Incolla qui l’altro JSON..." data-i18n-attr="placeholder=diff.placeholder"></textarea>
+    <div class="diff-actions">
+      <button class="copy-btn diff-run" id="diffRunBtn" type="button" title="Confronta (Ctrl+Invio)" data-i18n="diff.run" data-i18n-attr="title=diff.runTitle">Confronta</button>
+      <button class="copy-btn" id="diffCloseBtn" type="button" data-i18n="common.close">Chiudi</button>
+    </div>
+    <p class="diff-summary" id="diffSummary" aria-live="polite"></p>
+    <ul class="diff-list" id="diffList"></ul>
+  </dialog>
+
+  <div class="popover" id="fixHelpPopover" hidden>
+    <p data-i18n-html="fixHelp.introHtml"><strong>Correggi JSON</strong> prova a sistemare automaticamente i problemi comuni prima della formattazione:</p>
+    <ul>
+      <li data-i18n-html="fixHelp.trailingCommasHtml">Virgole finali (trailing commas)</li>
+      <li data-i18n-html="fixHelp.missingCommasHtml">Virgole mancanti tra gli elementi (<code>{"a": 1 "b": 2}</code>)</li>
+      <li data-i18n-html="fixHelp.singleQuotesHtml">Apici singoli invece delle virgolette doppie</li>
+      <li data-i18n-html="fixHelp.unquotedKeysHtml">Chiavi senza virgolette</li>
+      <li data-i18n-html="fixHelp.commentsHtml">Commenti <code>//</code> e <code>/* */</code></li>
+      <li data-i18n-html="fixHelp.pythonHtml"><code>True</code>/<code>False</code>/<code>None</code> (stile Python)</li>
+      <li data-i18n-html="fixHelp.stringifiedHtml">JSON intero tra virgolette (<code>"{...}"</code>) o serializzato due volte</li>
+      <li data-i18n-html="fixHelp.emptyValuesHtml">Valori vuoti (<code>{testo:,...}</code> diventa <code>""</code>)</li>
+      <li data-i18n-html="fixHelp.concatenatedHtml">Più oggetti separati (<code>{...} {...}</code>) diventano un array (<code>[{...}, {...}]</code>)</li>
+    </ul>
+    <button id="fixHelpClose" data-i18n="common.close">Chiudi</button>
+  </div>
+
+  <script type="module" src="../app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      // Resolved now: by "load" app.js may have changed the address to the
+      // chosen language's page.
+      const swUrl = new URL("../sw.js", location.href);
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register(swUrl).catch(() => {
+          // Offline cache registration is optional; app still works without it.
+        });
+      });
+    }
+  </script>
+</body>
+</html>
