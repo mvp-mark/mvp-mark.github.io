@@ -1,6 +1,7 @@
 // Tests for parser.js. Run with `npm test` (or `node tests/parser.test.js`)
 // from the json/ folder; no dependencies.
 import { strict as assert } from "assert";
+import { run, test } from "./harness.js";
 import {
   RawNumber,
   autoCloseBrackets,
@@ -17,9 +18,6 @@ import {
   validateSpec,
   wrapConcatenated,
 } from "../parser.js";
-
-const tests = [];
-const test = (name, fn) => tests.push({ name, fn });
 
 // Formatted text of what the lenient parser read, compact.
 const lenient = (text) => stringify(parseLenient(text));
@@ -194,15 +192,4 @@ test("formatLoose re-indents text that isn't valid JSON", () => {
   assert.equal(formatLoose("{a:1,b:[1,2],c:{d:x}}", "  "), "{\n  a: 1,\n  b: [\n    1,\n    2\n  ],\n  c: {\n    d: x\n  }\n}");
 });
 
-let failed = 0;
-for (const { name, fn } of tests) {
-  try {
-    fn();
-    console.log(`ok   ${name}`);
-  } catch (err) {
-    failed++;
-    console.log(`FAIL ${name}\n     ${String(err.message).split("\n").join("\n     ")}`);
-  }
-}
-console.log(`\n${tests.length - failed}/${tests.length} passaram`);
-process.exitCode = failed ? 1 : 0;
+run();

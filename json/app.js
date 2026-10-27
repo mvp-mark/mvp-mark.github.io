@@ -1,24 +1,13 @@
+import { analyze, unpack } from "./analyze.js";
 import {
   RawNumber,
-  autoCloseBrackets,
-  brokenWrapperInner,
   classifyBrackets,
-  formatLoose,
-  insertCommas,
-  isHardToEdit,
   lineCol,
-  parseJson,
-  parseLenient,
-  repairNestedKeys,
   scanBrackets,
   scanTokens,
-  strictErrorInfo,
   stringify,
-  suggestBracketRepair,
-  unwrapStringified,
-  validateSpec,
-  wrapConcatenated,
 } from "./parser.js";
+import { formatPath, searchValue } from "./tree.js";
 
 (function () {
   const inputEl = document.getElementById("input");
@@ -33,6 +22,15 @@ import {
   const openFileBtn = document.getElementById("openFileBtn");
   const fileInput = document.getElementById("fileInput");
   const copyBtn = document.getElementById("copyBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchCount = document.getElementById("searchCount");
+  const searchPrevBtn = document.getElementById("searchPrevBtn");
+  const searchNextBtn = document.getElementById("searchNextBtn");
+  const pathBar = document.getElementById("pathBar");
+  const pathText = document.getElementById("pathText");
+  const copyPathBtn = document.getElementById("copyPathBtn");
+  const outputNote = document.getElementById("outputNote");
   const expandAllBtn = document.getElementById("expandAllBtn");
   const collapseAllBtn = document.getElementById("collapseAllBtn");
   const fixHelpBtn = document.getElementById("fixHelpBtn");
@@ -53,6 +51,11 @@ import {
 
   // Plain-text version of what the output view shows (used by copy).
   let outputText = "";
+  // The value the output tree shows (searched by "Buscar"); undefined while
+  // the output is empty or shows an error.
+  let outputValue;
+  // Name of the file last opened, reused when downloading the output.
+  let fileName = null;
 
   function applyTheme(theme) {
     const selected = theme === "light" ? "light" : "dark";
@@ -294,23 +297,43 @@ import {
     return span;
   }
 
-  // Renders value so its text matches stringify(value, indent) exactly
-  // (selecting and copying from the view yields the same JSON), with each
-  // non-empty object/array wrapped in a collapsible .jv-node.
+  // The output tree is built lazily so big JSON doesn't freeze the page:
+  // about EAGER_LINES lines are built up front, blocks reached after that
+  // start collapsed and are built when first opened, and a block gets at
+  // most CHUNK_SIZE lines at a time (a "Mostrar mais" line adds the next).
+  const EAGER_LINES = 5000;
+  const CHUNK_SIZE = 2000;
+  // "Expandir" (and Alt+click) stops building after this many lines.
+  const EXPAND_ALL_LINES = 50000;
+  // Compact output is one line of inline spans with nothing to collapse, so
+  // it can't be built lazily; above this size it's shown as plain text.
+  const COMPACT_TREE_MAX_CHARS = 500000;
+
+  // Blocks with lines not built yet: .jv-node -> fill(budget), which builds
+  // the next CHUNK_SIZE lines (or, with budget.all, every line, until
+  // budget.left runs out). budget.left counts the lines left to build up
+  // front; blocks met once it's used up start collapsed and unbuilt.
+  const pendingBlocks = new WeakMap();
+
+  // Renders value so its text, once fully built, matches stringify(value,
+  // indent) exactly (selecting and copying from the view yields the same
+  // JSON), with each non-empty object/array wrapped in a collapsible
+  // .jv-node. Primitive values get .jv-val.
   // marks (optional): Map of JSON.stringify(path) -> { label, openAdded,
   // closeAdded }, for containers whose brackets were added by an automatic
   // fix: the added brackets are highlighted (an existing opener only
   // outlined). The label goes next to the opener when only the opener was
   // added; otherwise it's returned for the caller to place at the end of the
   // closer's line (after any comma).
-  function renderValue(parent, value, indent, depth, path = [], marks = null) {
+  function renderValue(parent, value, indent, depth, path = [], marks = null, budget = { left: EAGER_LINES }) {
     if (value === null || typeof value !== "object" || value instanceof RawNumber) {
-      parent.append(span(`jv-${primitiveKind(value)}`, stringify(value)));
+      parent.append(span(`jv-${primitiveKind(value)} jv-val`, stringify(value)));
       return null;
     }
 
     const isArray = Array.isArray(value);
-    const entries = isArray ? value.map((v) => [null, v]) : Object.entries(value);
+    const keys = isArray ? null : Object.keys(value);
+    const n = isArray ? value.length : keys.length;
     const [open, close] = isArray ? ["[", "]"] : ["{", "}"];
     const mark = marks === null ? undefined : marks.get(JSON.stringify(path));
     const openEl = bracket(open, depth);
@@ -322,7 +345,7 @@ import {
     const label = mark ? span("jv-missing-label", mark.label) : null;
     const labelAtOpen = mark !== undefined && mark.closeAdded === false;
 
-    if (entries.length === 0) {
+    if (n === 0) {
       parent.append(openEl, closeEl);
       return label;
     }
@@ -343,7 +366,6 @@ import {
     node.appendChild(openEl);
     if (labelAtOpen) node.appendChild(label);
 
-    const n = entries.length;
     const summary = document.createElement("span");
     summary.className = "jv-summary";
     summary.textContent = isArray
@@ -353,20 +375,57 @@ import {
 
     const children = document.createElement(pretty ? "div" : "span");
     children.className = "jv-children";
-    entries.forEach(([key, child], idx) => {
+    node.appendChild(children);
+
+    const renderLine = (idx, lineBudget) => {
+      const key = isArray ? idx : keys[idx];
       const line = document.createElement(pretty ? "div" : "span");
       line.className = "jv-line";
       if (pretty) line.append(indent.repeat(depth + 1));
-      if (key !== null) {
+      if (!isArray) {
         line.append(span("jv-key", JSON.stringify(key)), pretty ? ": " : ":");
       }
-      const childPath = marks === null ? path : [...path, isArray ? idx : key];
-      const childLabel = renderValue(line, child, indent, depth + 1, childPath, marks);
+      lineBudget.left--;
+      const childPath = marks === null ? path : [...path, key];
+      const childLabel = renderValue(line, value[key], indent, depth + 1, childPath, marks, lineBudget);
       if (idx < n - 1) line.append(",");
       if (childLabel) line.append(childLabel);
-      children.appendChild(line);
-    });
-    node.appendChild(children);
+      return line;
+    };
+
+    let next = 0;
+    let moreLine = null;
+    const fill = (fillBudget) => {
+      do {
+        const end = pretty ? Math.min(n, next + CHUNK_SIZE) : n;
+        for (; next < end; next++) children.insertBefore(renderLine(next, fillBudget), moreLine);
+      } while (fillBudget.all && next < n && fillBudget.left > 0);
+      if (next === n) {
+        moreLine?.remove();
+        pendingBlocks.delete(node);
+        return;
+      }
+      if (!moreLine) {
+        moreLine = document.createElement("div");
+        moreLine.className = "jv-line jv-more";
+        moreLine.append(indent.repeat(depth + 1));
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "jv-more-btn";
+        moreLine.appendChild(btn);
+        children.appendChild(moreLine);
+      }
+      const left = n - next;
+      moreLine.lastChild.textContent = left <= CHUNK_SIZE
+        ? `Mostrar ${left === 1 ? "o último" : `os ${left} restantes`}`
+        : `Mostrar mais ${CHUNK_SIZE} (faltam ${left})`;
+    };
+    pendingBlocks.set(node, fill);
+    if (pretty && depth > 0 && budget.left <= 0) {
+      setCollapsed(node, true);
+    } else {
+      fill(budget);
+    }
 
     if (pretty) {
       const closeIndent = document.createElement("span");
@@ -384,16 +443,32 @@ import {
     outputText = stringify(value, indent);
     const root = document.createElement("div");
     root.className = "jv-line";
-    const rootLabel = renderValue(root, value, indent, 0, [], marks);
-    if (rootLabel) root.appendChild(rootLabel);
+    if (indent === null && outputText.length > COMPACT_TREE_MAX_CHARS) {
+      root.textContent = outputText;
+    } else {
+      const rootLabel = renderValue(root, value, indent, 0, [], marks);
+      if (rootLabel) root.appendChild(rootLabel);
+    }
     outputEl.classList.remove("has-error");
     outputEl.replaceChildren(root);
+    outputChanged(value);
   }
 
+  // Also drops the result of any format() still running in the worker.
   function clearOutput() {
+    formatSeq++;
     outputText = "";
     outputEl.classList.remove("has-error");
     outputEl.replaceChildren();
+    outputChanged(undefined);
+  }
+
+  // Called whenever the output view is replaced.
+  function outputChanged(value) {
+    outputValue = value;
+    pathBar.hidden = true;
+    outputNote.hidden = true;
+    runSearch(false);
   }
 
   function span(className, text) {
@@ -690,6 +765,7 @@ import {
     outputEl.classList.add("has-error");
     outputEl.replaceChildren(box);
     outputEl.scrollTop = 0;
+    outputChanged(undefined);
 
     const where = lineCol(shown, toShown(firstInsert.pos));
     setStatus(
@@ -715,21 +791,6 @@ import {
     inputEl.scrollTop = 0;
   }
 
-  // On an error in hard-to-edit input, re-indents the input (dropping the
-  // outer quotes when the JSON came wrapped in them). True if it changed.
-  function reformatInputForEditing(raw, source, offset) {
-    const indent = indentFor(templateEl.value) ?? "  ";
-    const trimmed = raw.trim();
-    const wrapped = offset > 0 && source !== raw && /^["']/.test(trimmed) &&
-      trimmed === trimmed[0] + source + trimmed[0];
-    if (!wrapped && source !== raw) return false;
-    if (!isHardToEdit(source)) return false;
-    const next = formatLoose(source, indent);
-    if (next === raw) return false;
-    replaceInput(next);
-    return true;
-  }
-
   function addReformatNote(unwrapped) {
     const box = outputEl.querySelector(".jv-error");
     if (!box) return;
@@ -742,9 +803,9 @@ import {
     box.prepend(note);
   }
 
-  // Missing-bracket errors get the repair view; anything else the plain one.
-  function reportError(source, info, offset) {
-    const repair = suggestBracketRepair(source, fixEl.checked);
+  // Missing-bracket errors get the repair view (repair: analyze()'s
+  // suggestion); anything else the plain one.
+  function reportError(source, info, offset, repair) {
     if (repair) {
       showBracketRepair(source, repair, offset);
     } else if (offset >= 0) {
@@ -796,6 +857,7 @@ import {
 
     outputEl.classList.add("has-error");
     outputEl.replaceChildren(box);
+    outputChanged(undefined);
     setStatus(
       where ? `Erro na linha ${where.line}, coluna ${where.col}: ${message}` : `Erro ao interpretar o JSON: ${message}`,
       "error"
@@ -808,9 +870,80 @@ import {
     if (toggle) toggle.setAttribute("aria-expanded", String(!collapsed));
   }
 
+  function builtLines(node) {
+    const children = node.querySelector(":scope > .jv-children");
+    return children.childElementCount - (children.lastElementChild?.classList.contains("jv-more") ? 1 : 0);
+  }
+
+  // Opens a block, building its first lines if it was never opened (all of
+  // its lines with budget.all).
+  function expandBlock(node, budget = { left: EAGER_LINES }) {
+    const fill = pendingBlocks.get(node);
+    if (fill && (budget.all || builtLines(node) === 0)) fill(budget);
+    setCollapsed(node, false);
+  }
+
+  // Opens every block in `scope` (the output, or a block on Alt+click),
+  // building at most EXPAND_ALL_LINES lines. False if some were left
+  // unbuilt (and their blocks collapsed).
+  function expandAll(scope) {
+    const budget = { left: EXPAND_ALL_LINES, all: true };
+    let complete = true;
+    const nodes = scope.classList.contains("jv-node") ? [scope, ...scope.querySelectorAll(".jv-node")] : scope.querySelectorAll(".jv-node");
+    nodes.forEach((node) => {
+      if (budget.left <= 0 && pendingBlocks.has(node)) {
+        complete = false;
+        return;
+      }
+      expandBlock(node, budget);
+    });
+    // Blocks met after the budget ran out were left collapsed.
+    return complete && budget.left > 0;
+  }
+
+  function showNote(text) {
+    outputNote.textContent = text;
+    outputNote.hidden = false;
+  }
+
+  function noteIfPartial(complete) {
+    if (complete) return;
+    showNote(`O JSON é grande demais para expandir tudo de uma vez: parei após ${EXPAND_ALL_LINES.toLocaleString("pt-BR")} linhas. ` +
+      "Os blocos que ficaram recolhidos abrem com um clique.");
+  }
+
+  // Keys/indices from the root to the value on `line`, read from the view.
+  function pathOfLine(line) {
+    const keys = [];
+    for (let el = line; el?.parentElement.classList.contains("jv-children"); el = el.parentElement.closest(".jv-line")) {
+      const keyEl = el.querySelector(":scope > .jv-key");
+      keys.unshift(keyEl ? JSON.parse(keyEl.textContent) : Array.prototype.indexOf.call(el.parentElement.children, el));
+    }
+    return keys;
+  }
+
+  function showPath(keys) {
+    pathText.textContent = formatPath(keys);
+    pathBar.hidden = false;
+  }
+
   // Click the arrow, a bracket or the "N chaves" summary to fold/unfold.
-  // Alt+click applies the same state to every nested block.
+  // Alt+click applies the same state to every nested block. Clicking a key
+  // or a value shows its path.
   outputEl.addEventListener("click", (e) => {
+    const more = e.target.closest(".jv-more-btn");
+    if (more) {
+      const node = more.closest(".jv-node");
+      pendingBlocks.get(node)?.({ left: EAGER_LINES });
+      return;
+    }
+
+    const item = e.target.closest(".jv-key, .jv-val");
+    if (item && outputValue !== undefined && window.getSelection().isCollapsed) {
+      showPath(pathOfLine(item.closest(".jv-line")));
+      return;
+    }
+
     const target = e.target.closest(".jv-toggle, .jv-bracket, .jv-summary");
     if (!target) return;
     // Empty {} / [] brackets sit directly in a line, not in their own node.
@@ -820,20 +953,103 @@ import {
     if (!target.classList.contains("jv-toggle") && !window.getSelection().isCollapsed) return;
 
     const collapsed = !node.classList.contains("jv-collapsed");
-    setCollapsed(node, collapsed);
-    if (e.altKey) {
-      node.querySelectorAll(".jv-node").forEach((child) => setCollapsed(child, collapsed));
+    if (collapsed) {
+      setCollapsed(node, true);
+      if (e.altKey) node.querySelectorAll(".jv-node").forEach((child) => setCollapsed(child, true));
+    } else if (e.altKey) {
+      noteIfPartial(expandAll(node));
+    } else {
+      expandBlock(node);
     }
   });
 
-  expandAllBtn.addEventListener("click", () => {
-    outputEl.querySelectorAll(".jv-node").forEach((node) => setCollapsed(node, false));
-  });
+  expandAllBtn.addEventListener("click", () => noteIfPartial(expandAll(outputEl)));
 
   // Keeps the root open so the top-level keys stay visible.
   collapseAllBtn.addEventListener("click", () => {
     outputEl.querySelectorAll(".jv-node").forEach((node) => setCollapsed(node, node.dataset.depth !== "0"));
   });
+
+  // "Buscar" searches the shown value (not the DOM, which may not be fully
+  // built) and opens the blocks on the way to the current match.
+  const SEARCH_LIMIT = 1000;
+  let search = { matches: [], truncated: false, current: -1 };
+  let searchTimer = null;
+
+  // Opens the blocks down to a match and returns its key or value element,
+  // or null when the output isn't a tree (compact plain text).
+  function revealMatch({ steps, on }) {
+    let line = outputEl.querySelector(":scope > .jv-line");
+    for (const step of steps) {
+      const node = line.querySelector(":scope > .jv-node");
+      if (!node) return null;
+      expandBlock(node);
+      while (pendingBlocks.has(node) && builtLines(node) <= step) pendingBlocks.get(node)({ left: EAGER_LINES });
+      line = node.querySelector(":scope > .jv-children").children[step];
+    }
+    return line.querySelector(on === "key" ? ":scope > .jv-key" : ":scope > .jv-val");
+  }
+
+  function updateSearchCount() {
+    const { matches, truncated, current } = search;
+    if (!searchInput.value) searchCount.textContent = "";
+    else if (outputValue === undefined) searchCount.textContent = "sem saída";
+    else if (!matches.length) searchCount.textContent = "nada encontrado";
+    else searchCount.textContent = `${current < 0 ? "–" : current + 1}/${matches.length}${truncated ? "+" : ""}`;
+  }
+
+  function goToMatch(index) {
+    const n = search.matches.length;
+    if (!n) return;
+    search.current = (index + n) % n;
+    const match = search.matches[search.current];
+    outputEl.querySelector(".jv-match")?.classList.remove("jv-match");
+    const el = revealMatch(match);
+    if (el) {
+      el.classList.add("jv-match");
+      el.scrollIntoView({ block: "center", inline: "nearest" });
+    }
+    showPath(match.keys);
+    updateSearchCount();
+  }
+
+  // jump: go to the first match (when the query changes; not when the
+  // output does).
+  function runSearch(jump) {
+    clearTimeout(searchTimer);
+    searchTimer = null;
+    outputEl.querySelector(".jv-match")?.classList.remove("jv-match");
+    const query = searchInput.value;
+    search = outputValue === undefined
+      ? { matches: [], truncated: false, current: -1 }
+      : { ...searchValue(outputValue, query, SEARCH_LIMIT), current: -1 };
+    if (jump && search.matches.length) goToMatch(0);
+    else updateSearchCount();
+  }
+
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => runSearch(true), 200);
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      searchInput.value = "";
+      runSearch(false);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (searchTimer !== null) runSearch(true);
+      else stepMatch(e.shiftKey ? -1 : 1);
+    }
+  });
+
+  // Next (+1) / previous (-1) match; before any, the first / last one.
+  function stepMatch(delta) {
+    goToMatch(search.current < 0 ? (delta > 0 ? 0 : -1) : search.current + delta);
+  }
+
+  searchNextBtn.addEventListener("click", () => stepMatch(1));
+  searchPrevBtn.addEventListener("click", () => stepMatch(-1));
 
   function setStatus(message, kind) {
     if (!message) {
@@ -847,6 +1063,61 @@ import {
     statusEl.className = "status " + (kind || "");
   }
 
+  // Inputs this long are analyzed in worker.js, so the page stays usable
+  // (and shows "Processando…") while big or broken JSON is worked through.
+  const WORKER_MIN_CHARS = 200000;
+  let worker = null;
+  let workerFailed = false;
+  let workerJobId = 0;
+  const workerJobs = new Map(); // id -> { resolve, reject }
+
+  function stopWorker(reason) {
+    worker?.terminate();
+    worker = null;
+    workerJobs.forEach((job) => job.reject(new Error(reason)));
+    workerJobs.clear();
+  }
+
+  function startWorker() {
+    const w = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+    w.addEventListener("message", ({ data }) => {
+      const job = workerJobs.get(data.id);
+      if (!job) return;
+      workerJobs.delete(data.id);
+      if (data.error) job.reject(new Error(data.error));
+      else job.resolve(unpack(data.packed));
+    });
+    // Module workers unsupported, or worker.js failed to load: analyze on
+    // the page from now on.
+    w.addEventListener("error", () => {
+      workerFailed = true;
+      stopWorker("worker failed");
+    });
+    return w;
+  }
+
+  // analyze() in the worker. A job still running is for an older format()
+  // whose result would be dropped anyway, so the worker is restarted
+  // instead of making this one wait for it.
+  function analyzeInWorker(raw, options) {
+    if (workerJobs.size) stopWorker("superseded");
+    try {
+      if (!worker) worker = startWorker();
+    } catch {
+      workerFailed = true;
+      return Promise.reject(new Error("no worker"));
+    }
+    const id = ++workerJobId;
+    return new Promise((resolve, reject) => {
+      workerJobs.set(id, { resolve, reject });
+      worker.postMessage({ id, raw, options });
+    });
+  }
+
+  // Bumped by every format() and clearOutput(); a worker result for an
+  // older one is dropped.
+  let formatSeq = 0;
+
   // reformatted: set when the input was just re-indented after an error, so
   // the error is reported on the new text (and not re-indented again).
   function format(reformatted = null) {
@@ -857,10 +1128,32 @@ import {
       return;
     }
 
-    const spec = specEl.value;
-    const shouldFix = fixEl.checked;
-    const warnings = validateSpec(raw, spec);
+    const seq = ++formatSeq;
+    const options = {
+      spec: specEl.value,
+      fix: fixEl.checked,
+      indent: indentFor(templateEl.value) ?? "  ",
+      reformatted: reformatted !== null,
+    };
+    if (raw.length < WORKER_MIN_CHARS || workerFailed) {
+      present(raw, options, analyze(raw, options), reformatted);
+      return;
+    }
 
+    setStatus("Processando…", "busy");
+    analyzeInWorker(raw, options)
+      .catch(() => (seq === formatSeq ? analyze(raw, options) : null))
+      .then((result) => {
+        if (seq !== formatSeq) return;
+        // Edited while it ran: the positions in the result no longer match.
+        if (inputEl.value !== raw) setStatus("");
+        else present(raw, options, result, reformatted);
+      });
+  }
+
+  // Shows analyze()'s result for `raw`, which is still the input.
+  function present(raw, options, result, reformatted) {
+    const { warnings } = result;
     const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas sobrando ou faltando etc.";
 
     // Output shown: status notes, then history.
@@ -870,93 +1163,34 @@ import {
         timestamp: Date.now(),
         input: raw,
         template: templateEl.value,
-        spec,
-        fix: shouldFix,
+        spec: options.spec,
+        fix: options.fix,
         preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
       });
     };
 
-    const fail = (source, info, offset) => {
-      const closed = autoCloseBrackets(source, shouldFix);
+    if (result.fail) {
+      const { source, info, offset, closed, reformat, repair } = result.fail;
       if (closed) {
         const summary = showFixedOutput({ value: closed.value, marks: closed.marks, fixed: closed.fixed, closed }, source, offset);
         finish([summary, ...(closed.usedLenient || source !== raw ? [FIX_NOTE] : []), ...warnings], false);
-        return;
-      }
-      if (!reformatted && reformatInputForEditing(raw, source, offset)) {
+      } else if (reformat !== null) {
+        replaceInput(reformat);
         format({ unwrapped: source !== raw });
-        return;
+      } else {
+        reportError(source, info, offset, repair);
+        if (reformatted) addReformatNote(reformatted.unwrapped);
       }
-      reportError(source, info, offset);
-      if (reformatted) addReformatNote(reformatted.unwrapped);
-    };
-
-    // Reads `source` (the input, or the text inside quotes wrapping it).
-    // Returns { value, usedFix, repaired? } or null after reporting the error.
-    const read = (source, offset) => {
-      try {
-        return { value: parseJson(source), usedFix: source !== raw };
-      } catch (strictErr) {
-        const list = shouldFix ? wrapConcatenated(source) : null;
-        if (list) {
-          try {
-            return { value: parseJson(list), usedFix: true, joined: true };
-          } catch {
-            try {
-              return { value: parseLenient(list), usedFix: true, joined: true };
-            } catch {
-              // fall through: report the error against the original text
-            }
-          }
-        }
-        const repaired = repairNestedKeys(source, shouldFix);
-        if (repaired) {
-          return { value: repaired.value, usedFix: repaired.usedLenient || source !== raw, repaired: { ...repaired, source, offset } };
-        }
-        if (!shouldFix) {
-          fail(source, strictErrorInfo(source, strictErr), offset);
-          return null;
-        }
-        try {
-          const report = {};
-          const value = parseLenient(source, report);
-          const commas = report.missingCommas;
-          if (!commas.length) return { value, usedFix: true };
-          return { value, usedFix: true, repaired: { commas, fixed: insertCommas(source, commas), source, offset } };
-        } catch (lenientErr) {
-          const wrapped = source === raw ? brokenWrapperInner(raw) : null;
-          if (wrapped) return read(wrapped.text, wrapped.offset);
-          fail(source, { pos: lenientErr.pos ?? null, message: lenientErr.message }, offset);
-          return null;
-        }
-      }
-    };
-
-    const result = read(raw, 0);
-    if (!result) return;
-    let parsed = result.value;
-    let usedFix = result.usedFix;
-    let repaired = result.repaired ?? null;
-
-    const { value: inner, unwrapped, error, repaired: layerRepair } = unwrapStringified(parsed, shouldFix);
-    if (error) {
-      // When the quoted text appears verbatim in the input (no escapes),
-      // point at the real spot in the input instead of inside the string.
-      fail(error.source, error, raw.indexOf(error.source));
       return;
     }
-    if (unwrapped) {
-      parsed = inner;
-      usedFix = true;
-    }
-    if (layerRepair) repaired = { ...layerRepair, value: parsed, offset: raw.indexOf(layerRepair.source) };
 
+    const { value, usedFix, joined, repaired } = result.ok;
     const notes = [];
-    if (result.joined) notes.push(`${parsed.length} objetos separados foram agrupados em um array.`);
+    if (joined) notes.push(`${value.length} objetos separados foram agrupados em um array.`);
     if (repaired) {
-      notes.push(showFixedOutput({ ...repaired, value: parsed }, repaired.source, repaired.offset));
+      notes.push(showFixedOutput({ ...repaired, value }, repaired.source, repaired.offset));
     } else {
-      showOutput(parsed, indentFor(templateEl.value));
+      showOutput(value, indentFor(templateEl.value));
     }
     if (usedFix) notes.push(FIX_NOTE);
     notes.push(...warnings);
@@ -972,40 +1206,94 @@ import {
     })
   );
 
+  // Ctrl+Enter (⌘+Enter on Mac) formats from anywhere on the page.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      format();
+    }
+  });
+
   clearBtn.addEventListener("click", () => {
     inputEl.value = "";
+    fileName = null;
     clearOutput();
     setStatus("");
     inputEl.focus();
   });
 
+  function loadFile(file) {
+    file.text().then((text) => {
+      fileName = file.name;
+      inputEl.value = text;
+      format();
+    }, () => setStatus(`Não consegui ler o arquivo ${file.name}.`, "error"));
+  }
+
   openFileBtn.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      inputEl.value = String(reader.result);
-      format();
-    };
-    reader.readAsText(file);
+    if (file) loadFile(file);
     fileInput.value = "";
   });
 
-  copyBtn.addEventListener("click", async () => {
-    if (!outputText) return;
+  // Dropping a file on the input opens it (dragged text keeps the
+  // textarea's normal behavior).
+  const inputWrap = inputEl.parentElement;
+  const dragsFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+  inputWrap.addEventListener("dragover", (e) => {
+    if (!dragsFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    inputWrap.classList.add("dragging");
+  });
+  inputWrap.addEventListener("dragleave", (e) => {
+    if (!inputWrap.contains(e.relatedTarget)) inputWrap.classList.remove("dragging");
+  });
+  inputWrap.addEventListener("drop", (e) => {
+    if (!dragsFiles(e)) return;
+    e.preventDefault();
+    inputWrap.classList.remove("dragging");
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+
+  // Copies text, briefly confirming on the button. False if it failed.
+  async function copyText(text, button) {
     try {
-      await navigator.clipboard.writeText(outputText);
-      copyBtn.textContent = "Copiado!";
-      setTimeout(() => (copyBtn.textContent = "Copiar"), 1200);
+      await navigator.clipboard.writeText(text);
     } catch {
       const tmp = document.createElement("textarea");
-      tmp.value = outputText;
+      tmp.value = text;
       document.body.appendChild(tmp);
       tmp.select();
-      document.execCommand("copy");
+      const ok = document.execCommand("copy");
       tmp.remove();
+      if (!ok) return false;
     }
+    const label = button.textContent;
+    button.textContent = "Copiado!";
+    setTimeout(() => (button.textContent = label), 1200);
+    return true;
+  }
+
+  copyBtn.addEventListener("click", () => {
+    if (outputText) copyText(outputText, copyBtn);
+  });
+
+  copyPathBtn.addEventListener("click", () => copyText(pathText.textContent, copyPathBtn));
+
+  // Saves the output as <opened file's name>.json, or formatado.json.
+  downloadBtn.addEventListener("click", () => {
+    if (!outputText) return;
+    const url = URL.createObjectURL(new Blob([outputText], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName ? fileName.replace(/\.[^.]*$/, "") + ".json" : "formatado.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
   fixHelpBtn.addEventListener("click", () => (fixHelpPopover.hidden = false));

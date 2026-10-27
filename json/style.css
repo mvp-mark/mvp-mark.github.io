@@ -490,7 +490,63 @@ html, body {
 
 .pane-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
+}
+
+/* Output toolbar: search, then the path of the clicked/found item. */
+.output-tools,
+.path-bar,
+.output-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.path-bar[hidden],
+.output-note[hidden] { display: none; }
+
+.output-tools input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--textarea-bg);
+  color: var(--panel-fg);
+  font: inherit;
+}
+
+.output-tools input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.search-count {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.path-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.path-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  color: var(--panel-fg);
+}
+
+.output-note {
+  color: var(--muted);
+  background: var(--status-bg);
 }
 
 textarea,
@@ -539,6 +595,11 @@ textarea,
 
 .input-wrap textarea::placeholder { color: var(--muted); }
 .input-wrap textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.input-wrap.dragging {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
 
 .input-highlight {
   position: absolute;
@@ -589,6 +650,35 @@ textarea,
 .jv-bool { color: var(--syn-bool); }
 .jv-null { color: var(--syn-null); }
 .jv-comment { color: var(--syn-comment); }
+
+/* Clicking a key or value shows its path. */
+.json-view .jv-key:hover,
+.json-view .jv-val:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.jv-match {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: 1.5px solid var(--accent);
+}
+
+/* "Mostrar mais": the rest of a big block, built on request. */
+.jv-more { user-select: none; }
+
+.jv-more-btn {
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  padding: 0 8px;
+  background: var(--status-bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.jv-more-btn:hover { color: var(--panel-fg); }
 
 /* The button itself is zero-width and inline so it never adds a line break
    to selected/copied text; only its arrow is drawn, out in the gutter. */

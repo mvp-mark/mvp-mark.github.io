@@ -1,10 +1,14 @@
-const CACHE_NAME = "json-formatter-v5";
+// Set by `npm run sw-version` from a hash of ASSETS; CI fails if it's stale.
+const CACHE_NAME = "json-formatter-a795808c1c";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./parser.js",
+  "./analyze.js",
+  "./tree.js",
+  "./worker.js",
   "./favicon.svg",
   "./fonts/inter-latin.woff2",
   "./fonts/jetbrains-mono-latin.woff2"

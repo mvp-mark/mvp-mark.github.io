@@ -2,6 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/parser.test.js"
+    "test": "node tests/parser.test.js && node tests/analyze.test.js",
+    "sw-version": "node scripts/sw-version.js",
+    "check": "npm test && node scripts/sw-version.js --check"
   }
 }

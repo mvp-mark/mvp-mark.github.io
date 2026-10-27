@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  json-formatter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: json
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Testes
+        run: npm test
+      - name: Versão do cache do service worker
+        run: node scripts/sw-version.js --check

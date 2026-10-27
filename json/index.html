@@ -44,6 +44,7 @@
     "Validação RFC 8259, RFC 4627, ECMA-404 e JSON5",
     "Correção automática de JSON inválido",
     "Realce de sintaxe e colchetes coloridos",
+    "Busca por chave ou valor, com o caminho (JSONPath) de cada item",
     "Funciona offline"
   ],
   "author": { "@type": "Person", "name": "Marcus Vinícius Peixoto Paulo" }
@@ -119,7 +120,7 @@
         <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
       </div>
 
-      <button class="format-btn" id="formatBtn">Formatar</button>
+      <button class="format-btn" id="formatBtn" title="Formatar (Ctrl+Enter / ⌘+Enter)">Formatar</button>
 
       <div class="status" id="statusBox" hidden></div>
 
@@ -140,7 +141,7 @@
           </header>
           <div class="input-wrap">
             <pre class="input-highlight" id="inputHighlight" aria-hidden="true"></pre>
-            <textarea id="input" placeholder="Cole ou digite o JSON aqui..." spellcheck="false"></textarea>
+            <textarea id="input" placeholder="Cole, digite ou arraste um arquivo JSON aqui..." spellcheck="false"></textarea>
           </div>
         </section>
         <section class="pane">
@@ -150,8 +151,21 @@
               <button class="copy-btn" id="expandAllBtn" title="Expandir todos os blocos">Expandir</button>
               <button class="copy-btn" id="collapseAllBtn" title="Recolher todos os blocos">Recolher</button>
               <button class="copy-btn" id="copyBtn" title="Copiar saída">Copiar</button>
+              <button class="copy-btn" id="downloadBtn" title="Baixar a saída como arquivo .json">Baixar</button>
             </div>
           </header>
+          <div class="output-tools">
+            <input type="search" id="searchInput" placeholder="Buscar chave ou valor…" aria-label="Buscar chave ou valor na saída" spellcheck="false" autocomplete="off">
+            <span class="search-count" id="searchCount" aria-live="polite"></span>
+            <button class="copy-btn" id="searchPrevBtn" title="Resultado anterior (Shift+Enter)" aria-label="Resultado anterior">↑</button>
+            <button class="copy-btn" id="searchNextBtn" title="Próximo resultado (Enter)" aria-label="Próximo resultado">↓</button>
+          </div>
+          <div class="path-bar" id="pathBar" hidden>
+            <span class="path-label">Caminho</span>
+            <code class="path-text" id="pathText"></code>
+            <button class="copy-btn" id="copyPathBtn" title="Copiar o caminho">Copiar</button>
+          </div>
+          <div class="output-note" id="outputNote" role="status" hidden></div>
           <div class="json-view" id="output" data-placeholder="O JSON formatado aparecerá aqui..." role="region" aria-label="Saída formatada" tabindex="0"></div>
         </section>
       </div>
