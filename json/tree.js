@@ -1,7 +1,7 @@
 // Paths and search over a parsed JSON value, for the output view (no DOM;
 // used by app.js and by tests/).
 
-import { RawNumber } from "./parser.js";
+import { RawNumber, stringify } from "./parser.js";
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
@@ -57,4 +57,46 @@ export function searchValue(value, query, limit = 1000) {
   };
 
   return { matches, truncated: visit(value) };
+}
+
+const isContainer = (v) => v !== null && typeof v === "object" && !(v instanceof RawNumber);
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+// Copy of value with every object's keys in code-unit order (like jq -S);
+// arrays keep their order.
+export function sortKeys(value) {
+  if (!isContainer(value)) return value;
+  if (Array.isArray(value)) return value.map(sortKeys);
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortKeys(value[key])]));
+}
+
+// Differences from `before` to `after`: { keys, kind: "added" | "removed" |
+// "changed", before, after } (before/after undefined where absent). Objects
+// are matched by key and arrays by index; values are compared as written
+// (1.0 differs from 1). Stops at `limit`, with truncated: true.
+export function diffValues(before, after, limit = 1000) {
+  const diffs = [];
+  const keys = [];
+  const add = (kind, a, b) => diffs.push({ keys: [...keys], kind, before: a, after: b });
+
+  const visit = (a, b) => {
+    if (isContainer(a) && isContainer(b) && Array.isArray(a) === Array.isArray(b)) {
+      const names = Array.isArray(a)
+        ? Array.from({ length: Math.max(a.length, b.length) }, (_, i) => i)
+        : [...Object.keys(a), ...Object.keys(b).filter((key) => !hasOwn(a, key))];
+      for (const key of names) {
+        if (diffs.length >= limit) return;
+        keys.push(key);
+        if (!hasOwn(b, key)) add("removed", a[key], undefined);
+        else if (!hasOwn(a, key)) add("added", undefined, b[key]);
+        else visit(a[key], b[key]);
+        keys.pop();
+      }
+    } else if (stringify(a) !== stringify(b)) {
+      add("changed", a, b);
+    }
+  };
+
+  visit(before, after);
+  return { diffs, truncated: diffs.length >= limit };
 }

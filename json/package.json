@@ -2,8 +2,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/parser.test.js && node tests/analyze.test.js",
+    "test": "node tests/parser.test.js && node tests/analyze.test.js && node tests/convert.test.js",
+    "test:e2e": "node tests/e2e.test.js",
     "sw-version": "node scripts/sw-version.js",
     "check": "npm test && node scripts/sw-version.js --check"
+  },
+  "devDependencies": {
+    "puppeteer-core": "23.11.1"
   }
 }

@@ -510,6 +510,15 @@ html, body {
 .path-bar[hidden],
 .output-note[hidden] { display: none; }
 
+.output-tools select {
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  font: inherit;
+}
+
 .output-tools input {
   flex: 1;
   min-width: 0;
@@ -596,6 +605,35 @@ textarea,
 .input-wrap textarea::placeholder { color: var(--muted); }
 .input-wrap textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
+/* Over HIGHLIGHT_MAX_CHARS the textarea shows its own text, uncolored. */
+.input-wrap.plain textarea { color: var(--panel-fg); }
+.input-wrap.plain .input-highlight { display: none; }
+
+/* Over LARGE_INPUT_CHARS the text isn't in the textarea; a summary is shown. */
+.input-wrap.large textarea,
+.input-wrap.large .input-highlight { display: none; }
+
+.large-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.large-input[hidden] { display: none; }
+
+.large-input p { margin: 0; }
+
+.large-input-title {
+  font-weight: 700;
+  color: var(--panel-fg);
+}
+
 .input-wrap.dragging {
   outline: 2px dashed var(--accent);
   outline-offset: -6px;
@@ -618,6 +656,9 @@ textarea,
 }
 
 .json-view {
+  /* Own stacking context, so the .jv-cursor bar (z-index -1) sits between
+     the background and the text. */
+  isolation: isolate;
   overflow: auto;
   padding-left: 30px;
   white-space: pre-wrap;
@@ -656,6 +697,24 @@ textarea,
 .json-view .jv-val:hover {
   text-decoration: underline dotted;
   text-underline-offset: 3px;
+}
+
+/* Keyboard cursor: a bar behind the line's first row only (a .jv-line
+   also holds its block's nested lines). */
+.jv-cursor::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: -30px;
+  right: -14px;
+  height: 1.6em;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  pointer-events: none;
+}
+
+.json-view:focus-visible .jv-cursor::before {
+  box-shadow: inset 2px 0 var(--accent);
 }
 
 .jv-match {
@@ -932,3 +991,92 @@ textarea,
   .panes { grid-template-columns: 1fr; }
   .editor { padding: 12px; }
 }
+
+/* "Comparar" dialog */
+.diff-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--popover-bg);
+  color: var(--panel-fg);
+  box-shadow: 0 10px 30px var(--shadow);
+  font-size: 13px;
+}
+
+.diff-dialog::backdrop { background: rgba(2, 6, 23, 0.45); }
+
+.diff-dialog h2 { margin: 0 0 6px; font-size: 16px; }
+.diff-dialog p { margin: 0 0 10px; color: var(--muted); }
+
+.diff-dialog textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 160px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.diff-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.diff-run {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.diff-summary { color: var(--panel-fg) !important; }
+
+.diff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 40vh;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+
+.diff-item button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--panel-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.diff-item button:hover { background: var(--status-bg); }
+
+.diff-kind {
+  min-width: 82px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.diff-added .diff-kind { color: var(--ok); }
+.diff-removed .diff-kind { color: var(--danger); }
+.diff-changed .diff-kind { color: var(--accent); }
+
+.diff-path,
+.diff-values {
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.diff-values { color: var(--muted); }

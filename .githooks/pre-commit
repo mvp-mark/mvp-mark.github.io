@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keeps CACHE_NAME in json/sw.js in step with the files it caches (see
+# json/scripts/sw-version.js), so a commit never ships a stale cache name.
+# Enable once per clone with:  git config core.hooksPath .githooks
+# Note: it adds json/sw.js as it is in the working tree.
+if git diff --cached --name-only | grep -q '^json/'; then
+  node json/scripts/sw-version.js >/dev/null || exit 1
+  git add json/sw.js
+fi

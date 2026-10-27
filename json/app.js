@@ -1,4 +1,6 @@
 import { analyze, unpack } from "./analyze.js";
+import { toCsv, toYaml } from "./convert.js";
+import { openHistory } from "./history-store.js";
 import {
   RawNumber,
   classifyBrackets,
@@ -7,7 +9,8 @@ import {
   scanTokens,
   stringify,
 } from "./parser.js";
-import { formatPath, searchValue } from "./tree.js";
+import { SHARE_PREFIX, decodeShare, encodeShare } from "./share.js";
+import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
 (function () {
   const inputEl = document.getElementById("input");
@@ -16,6 +19,20 @@ import { formatPath, searchValue } from "./tree.js";
   const templateEl = document.getElementById("template");
   const specEl = document.getElementById("spec");
   const fixEl = document.getElementById("fixJson");
+  const sortEl = document.getElementById("sortKeys");
+  const outputFormatEl = document.getElementById("outputFormat");
+  const inputWrap = document.getElementById("inputWrap");
+  const largeInputEl = document.getElementById("largeInput");
+  const largeInputInfo = document.getElementById("largeInputInfo");
+  const largeShowBtn = document.getElementById("largeShowBtn");
+  const shareBtn = document.getElementById("shareBtn");
+  const diffBtn = document.getElementById("diffBtn");
+  const diffDialog = document.getElementById("diffDialog");
+  const diffInput = document.getElementById("diffInput");
+  const diffRunBtn = document.getElementById("diffRunBtn");
+  const diffCloseBtn = document.getElementById("diffCloseBtn");
+  const diffSummary = document.getElementById("diffSummary");
+  const diffList = document.getElementById("diffList");
   const statusEl = document.getElementById("statusBox");
   const formatBtn = document.getElementById("formatBtn");
   const clearBtn = document.getElementById("clearBtn");
@@ -42,11 +59,12 @@ import { formatPath, searchValue } from "./tree.js";
   const syntaxThemeEl = document.getElementById("syntaxTheme");
   const rainbowEl = document.getElementById("rainbowBrackets");
 
-  const HISTORY_KEY = "jsonFormatter.history";
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
   const SYNTAX_KEY = "jsonFormatter.syntax";
   const RAINBOW_KEY = "jsonFormatter.rainbow";
+  const SORT_KEY = "jsonFormatter.sortKeys";
+  const OUTPUT_FORMAT_KEY = "jsonFormatter.outputFormat";
   const BRACKET_COLOR_COUNT = 6;
 
   // Plain-text version of what the output view shows (used by copy).
@@ -120,9 +138,19 @@ import { formatPath, searchValue } from "./tree.js";
   syntaxThemeEl.addEventListener("change", () => applySyntaxTheme(syntaxThemeEl.value));
   rainbowEl.addEventListener("change", () => applyRainbow(rainbowEl.checked));
 
+  // "Ordenar chaves" and the output format (JSON/YAML/CSV) are remembered;
+  // changing them formats again (see the listeners near the end).
+  sortEl.checked = readSetting(SORT_KEY, "off") === "on";
+  outputFormatEl.value = readSetting(OUTPUT_FORMAT_KEY, "json");
+  if (!outputFormatEl.value) outputFormatEl.value = "json";
+  sortEl.addEventListener("change", () => storeSetting(SORT_KEY, sortEl.checked ? "on" : "off"));
+  outputFormatEl.addEventListener("change", () => storeSetting(OUTPUT_FORMAT_KEY, outputFormatEl.value));
+
   // Colored input: the textarea's text is transparent and a <pre> behind it
   // shows the same text with brackets colored by depth (unmatched ones in
   // red) plus keys/values colored by kind. Scroll and size are kept in sync.
+  // Above this the <pre> is dropped (.plain) and the textarea shows its own
+  // text: laying the text out twice is what makes big inputs slow.
   const HIGHLIGHT_MAX_CHARS = 300000;
   // Above this, only brackets are colored (one span per token gets slow).
   const TOKEN_HIGHLIGHT_MAX_CHARS = 100000;
@@ -143,10 +171,12 @@ import { formatPath, searchValue } from "./tree.js";
 
   function renderInputHighlight() {
     highlightQueued = false;
-    const text = inputEl.value;
+    const text = largeText === null ? inputEl.value : "";
+    const plain = text.length > HIGHLIGHT_MAX_CHARS;
+    inputWrap.classList.toggle("plain", plain);
     // A trailing space keeps a final empty line the same height as in the textarea.
-    if (text.length > HIGHLIGHT_MAX_CHARS) {
-      inputHighlightEl.textContent = text + " ";
+    if (plain) {
+      inputHighlightEl.textContent = "";
     } else {
       const brackets = classifyBrackets(scanBrackets(text)).map((b) => ({
         pos: b.pos,
@@ -174,17 +204,77 @@ import { formatPath, searchValue } from "./tree.js";
     requestAnimationFrame(renderInputHighlight);
   }
 
+  // Inputs bigger than this aren't put in the textarea at all: laying out a
+  // few MB of text there freezes the page for seconds, highlight or not.
+  // The text is kept in largeText (inputEl.value returns it) and a summary
+  // is shown instead, until the user asks to see it anyway.
+  const LARGE_INPUT_CHARS = 500000;
+  let largeText = null;
+  // Set by "Mostrar o texto mesmo assim"; reset when other text is loaded.
+  let showLargeInput = false;
+
+  function updateLargeInput() {
+    const large = largeText !== null;
+    inputWrap.classList.toggle("large", large);
+    largeInputEl.hidden = !large;
+    if (!large) return;
+    let lines = 1;
+    for (let i = largeText.indexOf("\n"); i !== -1; i = largeText.indexOf("\n", i + 1)) lines++;
+    const mb = (new Blob([largeText]).size / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    largeInputInfo.textContent = `${mb} MB, ${lines.toLocaleString("pt-BR")} linhas. Para não travar o navegador, o texto não é ` +
+      "mostrado aqui; formatar, buscar, copiar e baixar funcionam normalmente.";
+  }
+
   // The value is also set from code (history, file, clear, fixes); hook the
-  // setter so every change is highlighted without touching each call site.
+  // setter so every change is highlighted (and big text kept out of the
+  // textarea) without touching each call site.
   const textareaValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
   Object.defineProperty(inputEl, "value", {
     get() {
-      return textareaValue.get.call(this);
+      return largeText ?? textareaValue.get.call(this);
     },
     set(text) {
-      textareaValue.set.call(this, text);
+      const large = text.length > LARGE_INPUT_CHARS && !showLargeInput;
+      largeText = large ? text : null;
+      textareaValue.set.call(this, large ? "" : text);
+      updateLargeInput();
       queueInputHighlight();
     },
+  });
+
+  // Puts big text in the textarea after all (slow, but it can be edited).
+  function showFullInput() {
+    if (largeText === null) return;
+    showLargeInput = true;
+    inputEl.value = largeText;
+  }
+
+  largeShowBtn.addEventListener("click", () => {
+    showFullInput();
+    inputEl.focus();
+  });
+
+  // Pasting something big goes straight to the summary (and is formatted,
+  // since it can't be seen). With the summary shown, pasting anywhere
+  // outside a field replaces the input.
+  inputEl.addEventListener("paste", (e) => {
+    const pasted = e.clipboardData?.getData("text/plain") ?? "";
+    const current = textareaValue.get.call(inputEl);
+    const next = current.slice(0, inputEl.selectionStart) + pasted + current.slice(inputEl.selectionEnd);
+    if (next.length <= LARGE_INPUT_CHARS || showLargeInput) return;
+    e.preventDefault();
+    inputEl.value = next;
+    format();
+  });
+
+  document.addEventListener("paste", (e) => {
+    if (largeText === null || e.target.closest?.("input, textarea, select, dialog")) return;
+    const pasted = e.clipboardData?.getData("text/plain") ?? "";
+    if (!pasted) return;
+    e.preventDefault();
+    showLargeInput = false;
+    inputEl.value = pasted;
+    format();
   });
 
   inputEl.addEventListener("input", queueInputHighlight);
@@ -192,39 +282,20 @@ import { formatPath, searchValue } from "./tree.js";
   new ResizeObserver(syncHighlightBox).observe(inputEl);
   queueInputHighlight();
 
-  function loadHistory() {
-    try {
-      const entries = JSON.parse(localStorage.getItem(HISTORY_KEY));
-      return Array.isArray(entries) ? entries : [];
-    } catch {
-      return [];
-    }
-  }
-
-  // False when storage is unavailable (private mode) or full.
-  function saveHistory(entries) {
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  // See history-store.js (IndexedDB, or localStorage where unavailable).
+  const historyReady = openHistory(HISTORY_LIMIT);
 
   // Most recent first, one entry per input (formatting the same text again,
-  // e.g. after changing the indentation, just moves it to the top). When
-  // storage is full the oldest entries are dropped; an input too big to fit
-  // even alone is left out rather than wiping the rest.
-  function addToHistory(entry) {
-    const entries = [entry, ...loadHistory().filter((e) => e.input !== entry.input)].slice(0, HISTORY_LIMIT);
-    for (let n = entries.length; n > 0; n--) {
-      if (saveHistory(entries.slice(0, n))) break;
-    }
+  // e.g. after changing the indentation, just moves it to the top).
+  async function addToHistory(entry, input) {
+    const history = await historyReady;
+    await history.add(entry, input);
     renderHistory();
   }
 
-  function renderHistory() {
-    const entries = loadHistory();
+  async function renderHistory() {
+    const history = await historyReady;
+    const entries = await history.list();
     historyListEl.innerHTML = "";
 
     if (entries.length === 0) {
@@ -252,11 +323,14 @@ import { formatPath, searchValue } from "./tree.js";
       li.appendChild(preview);
       // The output isn't stored (it would double the size); formatting the
       // input again with the same settings gives it back.
-      li.addEventListener("click", () => {
-        inputEl.value = entry.input;
+      li.addEventListener("click", async () => {
+        const input = await history.getInput(entry);
+        showLargeInput = false;
+        inputEl.value = input;
         templateEl.value = entry.template;
         specEl.value = entry.spec;
         fixEl.checked = entry.fix;
+        if (entry.sort !== undefined) sortEl.checked = entry.sort;
         format();
       });
 
@@ -264,8 +338,8 @@ import { formatPath, searchValue } from "./tree.js";
     });
   }
 
-  historyClearBtn.addEventListener("click", () => {
-    saveHistory([]);
+  historyClearBtn.addEventListener("click", async () => {
+    await (await historyReady).clear();
     renderHistory();
   });
 
@@ -438,12 +512,28 @@ import { formatPath, searchValue } from "./tree.js";
     return labelAtOpen ? null : label;
   }
 
+  // What "Copiar"/"Baixar" give: the output text and its file type, which
+  // follow the output format chosen (JSON, YAML or CSV).
+  let outputType = { ext: "json", mime: "application/json" };
+  const OUTPUT_TYPES = {
+    json: { ext: "json", mime: "application/json" },
+    yaml: { ext: "yaml", mime: "application/yaml" },
+    csv: { ext: "csv", mime: "text/csv" },
+  };
+
   // marks: see renderValue (closers that were added automatically).
+  // YAML/CSV output is plain text; search still works on the value (and
+  // shows the path of each match).
   function showOutput(value, indent, marks = null) {
-    outputText = stringify(value, indent);
+    const kind = outputFormatEl.value;
+    const converted = kind === "yaml" ? toYaml(value) : kind === "csv" ? toCsv(value) : null;
+    const csvFailed = kind === "csv" && converted === null;
+    outputType = OUTPUT_TYPES[csvFailed ? "json" : kind];
+    outputText = converted ?? stringify(value, indent);
+
     const root = document.createElement("div");
     root.className = "jv-line";
-    if (indent === null && outputText.length > COMPACT_TREE_MAX_CHARS) {
+    if (converted !== null || (indent === null && outputText.length > COMPACT_TREE_MAX_CHARS)) {
       root.textContent = outputText;
     } else {
       const rootLabel = renderValue(root, value, indent, 0, [], marks);
@@ -452,6 +542,7 @@ import { formatPath, searchValue } from "./tree.js";
     outputEl.classList.remove("has-error");
     outputEl.replaceChildren(root);
     outputChanged(value);
+    if (csvFailed) showNote("CSV precisa de um array (de objetos, de listas ou de valores); a saída está em JSON.");
   }
 
   // Also drops the result of any format() still running in the worker.
@@ -466,6 +557,7 @@ import { formatPath, searchValue } from "./tree.js";
   // Called whenever the output view is replaced.
   function outputChanged(value) {
     outputValue = value;
+    cursorLine = null;
     pathBar.hidden = true;
     outputNote.hidden = true;
     runSearch(false);
@@ -740,6 +832,7 @@ import { formatPath, searchValue } from "./tree.js";
       jump.textContent = "Mostrar na entrada";
       jump.addEventListener("click", () => {
         const pos = toShown(firstInsert.pos);
+        showFullInput();
         inputEl.focus({ preventScroll: true });
         inputEl.setSelectionRange(pos, pos);
         scrollInputTo(pos);
@@ -776,8 +869,12 @@ import { formatPath, searchValue } from "./tree.js";
   }
 
   // Replaces the input text keeping the browser's undo history (Ctrl+Z)
-  // where execCommand is supported.
+  // where execCommand is supported (not for text kept out of the textarea).
   function replaceInput(text) {
+    if (largeText !== null || (text.length > LARGE_INPUT_CHARS && !showLargeInput)) {
+      inputEl.value = text;
+      return;
+    }
     inputEl.focus({ preventScroll: true });
     inputEl.select();
     let ok = false;
@@ -848,6 +945,7 @@ import { formatPath, searchValue } from "./tree.js";
       jump.className = "copy-btn jv-error-jump";
       jump.textContent = "Mostrar na entrada";
       jump.addEventListener("click", () => {
+        showFullInput();
         inputEl.focus({ preventScroll: true });
         inputEl.setSelectionRange(pos, Math.min(pos + 1, inputEl.value.length));
         scrollInputTo(pos);
@@ -940,7 +1038,7 @@ import { formatPath, searchValue } from "./tree.js";
 
     const item = e.target.closest(".jv-key, .jv-val");
     if (item && outputValue !== undefined && window.getSelection().isCollapsed) {
-      showPath(pathOfLine(item.closest(".jv-line")));
+      setCursor(item.closest(".jv-line"));
       return;
     }
 
@@ -976,18 +1074,25 @@ import { formatPath, searchValue } from "./tree.js";
   let search = { matches: [], truncated: false, current: -1 };
   let searchTimer = null;
 
-  // Opens the blocks down to a match and returns its key or value element,
-  // or null when the output isn't a tree (compact plain text).
-  function revealMatch({ steps, on }) {
+  // Opens the blocks down to the line at `steps` (entry positions, as in
+  // searchValue) and returns it, or null when the output isn't a tree
+  // (plain text).
+  function revealPath(steps) {
     let line = outputEl.querySelector(":scope > .jv-line");
     for (const step of steps) {
-      const node = line.querySelector(":scope > .jv-node");
+      const node = line?.querySelector(":scope > .jv-node");
       if (!node) return null;
       expandBlock(node);
       while (pendingBlocks.has(node) && builtLines(node) <= step) pendingBlocks.get(node)({ left: EAGER_LINES });
       line = node.querySelector(":scope > .jv-children").children[step];
     }
-    return line.querySelector(on === "key" ? ":scope > .jv-key" : ":scope > .jv-val");
+    return line;
+  }
+
+  // A match's key or value element, its blocks opened (null if none).
+  function revealMatch({ steps, on }) {
+    const line = revealPath(steps);
+    return line && line.querySelector(on === "key" ? ":scope > .jv-key" : ":scope > .jv-val");
   }
 
   function updateSearchCount() {
@@ -1050,6 +1155,198 @@ import { formatPath, searchValue } from "./tree.js";
 
   searchNextBtn.addEventListener("click", () => stepMatch(1));
   searchPrevBtn.addEventListener("click", () => stepMatch(-1));
+
+  // Keyboard navigation in the output (focus it, or click a key/value):
+  // ↑/↓ move between lines, → opens a block or goes into it, ← closes it or
+  // goes to the parent, Enter/Space opens/closes (or loads "Mostrar mais"),
+  // Home/End go to the first/last line. The current line's path is shown.
+  let cursorLine = null;
+
+  function setCursor(line) {
+    cursorLine?.classList.remove("jv-cursor");
+    cursorLine = line;
+    if (!line) return;
+    line.classList.add("jv-cursor");
+    line.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (!line.classList.contains("jv-more")) showPath(pathOfLine(line));
+  }
+
+  const nodeOf = (line) => line.querySelector(":scope > .jv-node");
+  const isOpen = (node) => node !== null && !node.classList.contains("jv-collapsed");
+  const childLines = (node) => node.querySelector(":scope > .jv-children").children;
+  const inBlock = (line) => line.parentElement.classList.contains("jv-children");
+  const parentLine = (line) => (inBlock(line) ? line.parentElement.closest(".jv-line") : null);
+
+  // The last line shown inside `line` (itself when it's closed or a value).
+  function lastShown(line) {
+    for (let node = nodeOf(line); isOpen(node) && childLines(node).length; node = nodeOf(line)) {
+      const lines = childLines(node);
+      line = lines[lines.length - 1];
+    }
+    return line;
+  }
+
+  function nextLine(line) {
+    const node = nodeOf(line);
+    if (isOpen(node) && childLines(node).length) return childLines(node)[0];
+    for (let el = line; el; el = parentLine(el)) {
+      if (inBlock(el) && el.nextElementSibling) return el.nextElementSibling;
+    }
+    return null;
+  }
+
+  function prevLine(line) {
+    const prev = inBlock(line) ? line.previousElementSibling : null;
+    return prev ? lastShown(prev) : parentLine(line);
+  }
+
+  outputEl.addEventListener("keydown", (e) => {
+    if (outputValue === undefined || e.altKey || e.ctrlKey || e.metaKey) return;
+    const root = outputEl.querySelector(":scope > .jv-line");
+    if (!root || !nodeOf(root) && e.key !== "Home") return;
+    const line = cursorLine?.isConnected ? cursorLine : null;
+    const node = line && nodeOf(line);
+    let next = line;
+    switch (e.key) {
+      case "ArrowDown":
+        next = line ? nextLine(line) : root;
+        break;
+      case "ArrowUp":
+        next = line ? prevLine(line) : root;
+        break;
+      case "Home":
+        next = root;
+        break;
+      case "End":
+        next = lastShown(root);
+        break;
+      case "ArrowRight":
+        if (!line) next = root;
+        else if (node && !isOpen(node)) expandBlock(node);
+        else if (node) next = childLines(node)[0];
+        break;
+      case "ArrowLeft":
+        if (!line) next = root;
+        else if (isOpen(node)) setCollapsed(node, true);
+        else next = parentLine(line) ?? line;
+        break;
+      case "Enter":
+      case " ": {
+        // On a focused button the browser already clicks it.
+        if (!line || e.target !== outputEl) return;
+        if (line.classList.contains("jv-more")) {
+          const block = line.closest(".jv-node");
+          const index = Array.prototype.indexOf.call(line.parentElement.children, line);
+          pendingBlocks.get(block)?.({ left: EAGER_LINES });
+          next = childLines(block)[index];
+        } else if (node) {
+          if (isOpen(node)) setCollapsed(node, true);
+          else expandBlock(node);
+        }
+        break;
+      }
+      default:
+        return;
+    }
+    e.preventDefault();
+    if (next) setCursor(next);
+  });
+
+  // "Comparar": differences between the output's value and another JSON,
+  // read with the same settings. Clicking one shows it in the output.
+  const DIFF_LIMIT = 1000;
+  const DIFF_KIND = { added: "adicionado", removed: "removido", changed: "alterado" };
+
+  // Entry positions (as revealPath takes) of the longest prefix of `keys`
+  // that exists in `value`.
+  function stepsFor(value, keys) {
+    const steps = [];
+    for (const key of keys) {
+      if (value === null || typeof value !== "object" || value instanceof RawNumber) break;
+      const step = Array.isArray(value) ? (key < value.length ? key : -1) : Object.keys(value).indexOf(key);
+      if (step < 0) break;
+      steps.push(step);
+      value = value[key];
+    }
+    return steps;
+  }
+
+  function shortValue(value) {
+    if (value === undefined) return "—";
+    const text = stringify(value);
+    return text.length > 60 ? text.slice(0, 60) + "…" : text;
+  }
+
+  function runDiff() {
+    diffList.replaceChildren();
+    const text = diffInput.value;
+    if (!text.trim()) {
+      diffSummary.textContent = "Cole o JSON a comparar.";
+      return;
+    }
+    const result = analyze(text, { spec: "json5", fix: fixEl.checked, indent: "  ", reformatted: true });
+    let other;
+    if (result.ok) {
+      other = result.ok.value;
+    } else if (result.fail.closed) {
+      other = result.fail.closed.value;
+    } else {
+      const { source, info } = result.fail;
+      const where = info.pos == null ? "" : ` (linha ${lineCol(source, info.pos).line})`;
+      diffSummary.textContent = `Não consegui ler esse JSON${where}: ${info.message}`;
+      return;
+    }
+
+    const { diffs, truncated } = diffValues(outputValue, other, DIFF_LIMIT);
+    const count = (kind) => diffs.filter((d) => d.kind === kind).length;
+    diffSummary.textContent = diffs.length === 0
+      ? "Nenhuma diferença."
+      : `${diffs.length}${truncated ? "+" : ""} diferença${diffs.length === 1 ? "" : "s"}: ` +
+        `${count("added")} adicionada(s), ${count("removed")} removida(s), ${count("changed")} alterada(s) ` +
+        "(da saída atual para o JSON colado).";
+
+    diffs.forEach((diff) => {
+      const li = document.createElement("li");
+      li.className = `diff-item diff-${diff.kind}`;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.title = "Mostrar na saída";
+      button.append(span("diff-kind", DIFF_KIND[diff.kind]), span("diff-path", formatPath(diff.keys)));
+      const values = document.createElement("span");
+      values.className = "diff-values";
+      values.textContent = diff.kind === "changed"
+        ? `${shortValue(diff.before)} → ${shortValue(diff.after)}`
+        : shortValue(diff.kind === "added" ? diff.after : diff.before);
+      button.appendChild(values);
+      button.addEventListener("click", () => {
+        diffDialog.close();
+        const line = revealPath(stepsFor(outputValue, diff.keys));
+        if (line) setCursor(line);
+        else showPath(diff.keys);
+        outputEl.focus({ preventScroll: true });
+      });
+      li.appendChild(button);
+      diffList.appendChild(li);
+    });
+  }
+
+  diffBtn.addEventListener("click", () => {
+    if (outputValue === undefined) {
+      showNote("Formate um JSON primeiro; a comparação é feita com a saída.");
+      return;
+    }
+    diffDialog.showModal();
+    diffInput.focus();
+  });
+  diffRunBtn.addEventListener("click", runDiff);
+  diffInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      e.stopPropagation();
+      runDiff();
+    }
+  });
+  diffCloseBtn.addEventListener("click", () => diffDialog.close());
 
   function setStatus(message, kind) {
     if (!message) {
@@ -1134,6 +1431,7 @@ import { formatPath, searchValue } from "./tree.js";
       fix: fixEl.checked,
       indent: indentFor(templateEl.value) ?? "  ",
       reformatted: reformatted !== null,
+      sort: sortEl.checked,
     };
     if (raw.length < WORKER_MIN_CHARS || workerFailed) {
       present(raw, options, analyze(raw, options), reformatted);
@@ -1154,6 +1452,9 @@ import { formatPath, searchValue } from "./tree.js";
   // Shows analyze()'s result for `raw`, which is still the input.
   function present(raw, options, result, reformatted) {
     const { warnings } = result;
+    // "Ordenar chaves" applies to what's shown; repair marks are keyed by
+    // path, so they still match after sorting.
+    const shown = (value) => (options.sort ? sortKeys(value) : value);
     const FIX_NOTE = "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas sobrando ou faltando etc.";
 
     // Output shown: status notes, then history.
@@ -1161,18 +1462,18 @@ import { formatPath, searchValue } from "./tree.js";
       setStatus(notes.length ? notes.join("\n") : "JSON válido.", ok && !notes.length ? "ok" : "error");
       addToHistory({
         timestamp: Date.now(),
-        input: raw,
         template: templateEl.value,
         spec: options.spec,
         fix: options.fix,
+        sort: options.sort,
         preview: raw.trim().slice(0, 80).replace(/\s+/g, " "),
-      });
+      }, raw);
     };
 
     if (result.fail) {
       const { source, info, offset, closed, reformat, repair } = result.fail;
       if (closed) {
-        const summary = showFixedOutput({ value: closed.value, marks: closed.marks, fixed: closed.fixed, closed }, source, offset);
+        const summary = showFixedOutput({ value: shown(closed.value), marks: closed.marks, fixed: closed.fixed, closed }, source, offset);
         finish([summary, ...(closed.usedLenient || source !== raw ? [FIX_NOTE] : []), ...warnings], false);
       } else if (reformat !== null) {
         replaceInput(reformat);
@@ -1188,9 +1489,9 @@ import { formatPath, searchValue } from "./tree.js";
     const notes = [];
     if (joined) notes.push(`${value.length} objetos separados foram agrupados em um array.`);
     if (repaired) {
-      notes.push(showFixedOutput({ ...repaired, value }, repaired.source, repaired.offset));
+      notes.push(showFixedOutput({ ...repaired, value: shown(value) }, repaired.source, repaired.offset));
     } else {
-      showOutput(value, indentFor(templateEl.value));
+      showOutput(shown(value), indentFor(templateEl.value));
     }
     if (usedFix) notes.push(FIX_NOTE);
     notes.push(...warnings);
@@ -1200,7 +1501,7 @@ import { formatPath, searchValue } from "./tree.js";
   renderHistory();
 
   formatBtn.addEventListener("click", () => format());
-  [templateEl, specEl, fixEl].forEach((el) =>
+  [templateEl, specEl, fixEl, sortEl, outputFormatEl].forEach((el) =>
     el.addEventListener("change", () => {
       if (inputEl.value.trim()) format();
     })
@@ -1215,6 +1516,7 @@ import { formatPath, searchValue } from "./tree.js";
   });
 
   clearBtn.addEventListener("click", () => {
+    showLargeInput = false;
     inputEl.value = "";
     fileName = null;
     clearOutput();
@@ -1225,6 +1527,7 @@ import { formatPath, searchValue } from "./tree.js";
   function loadFile(file) {
     file.text().then((text) => {
       fileName = file.name;
+      showLargeInput = false;
       inputEl.value = text;
       format();
     }, () => setStatus(`Não consegui ler o arquivo ${file.name}.`, "error"));
@@ -1239,7 +1542,6 @@ import { formatPath, searchValue } from "./tree.js";
 
   // Dropping a file on the input opens it (dragged text keeps the
   // textarea's normal behavior).
-  const inputWrap = inputEl.parentElement;
   const dragsFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
   inputWrap.addEventListener("dragover", (e) => {
     if (!dragsFiles(e)) return;
@@ -1283,18 +1585,66 @@ import { formatPath, searchValue } from "./tree.js";
 
   copyPathBtn.addEventListener("click", () => copyText(pathText.textContent, copyPathBtn));
 
-  // Saves the output as <opened file's name>.json, or formatado.json.
+  // Saves the output as <opened file's name>.<json|yaml|csv>, or
+  // formatado.<ext>.
   downloadBtn.addEventListener("click", () => {
     if (!outputText) return;
-    const url = URL.createObjectURL(new Blob([outputText], { type: "application/json" }));
+    const url = URL.createObjectURL(new Blob([outputText], { type: outputType.mime }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = fileName ? fileName.replace(/\.[^.]*$/, "") + ".json" : "formatado.json";
+    link.download = (fileName ? fileName.replace(/\.[^.]*$/, "") : "formatado") + "." + outputType.ext;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+
+  // "Compartilhar": copies a link with the input in its #fragment (see
+  // share.js). Opening such a link loads and formats that input.
+  const SHARE_MAX_CHARS = 100000;
+
+  shareBtn.addEventListener("click", async () => {
+    const text = inputEl.value;
+    if (!text.trim()) {
+      setStatus("Nada para compartilhar: a entrada está vazia.", "error");
+      return;
+    }
+    let code;
+    try {
+      code = await encodeShare(text);
+    } catch {
+      setStatus("Este navegador não consegue gerar o link (sem suporte a compressão).", "error");
+      return;
+    }
+    if (code.length > SHARE_MAX_CHARS) {
+      setStatus("O JSON é grande demais para caber num link; use Baixar e envie o arquivo.", "error");
+      return;
+    }
+    const link = location.origin + location.pathname + SHARE_PREFIX + code;
+    try {
+      await navigator.clipboard.writeText(link);
+      setStatus("Link copiado. O JSON vai no próprio link (depois do #) e não passa por nenhum servidor.", "ok");
+    } catch {
+      window.prompt("Copie o link:", link);
+    }
+  });
+
+  async function loadSharedInput() {
+    if (!location.hash.startsWith(SHARE_PREFIX)) return;
+    const code = location.hash.slice(SHARE_PREFIX.length);
+    // The link has done its job; edits would make it stale.
+    window.history.replaceState(null, "", location.pathname + location.search);
+    try {
+      showLargeInput = false;
+      inputEl.value = await decodeShare(code);
+      format();
+    } catch {
+      setStatus("O link compartilhado está incompleto ou corrompido.", "error");
+    }
+  }
+
+  loadSharedInput();
+  window.addEventListener("hashchange", loadSharedInput);
 
   fixHelpBtn.addEventListener("click", () => (fixHelpPopover.hidden = false));
   fixHelpClose.addEventListener("click", () => (fixHelpPopover.hidden = true));

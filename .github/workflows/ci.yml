@@ -16,7 +16,14 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: json/package-lock.json
+      - run: npm ci
       - name: Testes
         run: npm test
       - name: Versão do cache do service worker
         run: node scripts/sw-version.js --check
+      - name: Testes no navegador (Chrome do runner)
+        run: npm run test:e2e
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
