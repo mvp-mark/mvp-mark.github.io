@@ -8,4 +8,5 @@ if git diff --cached --name-only | grep -q '^json/'; then
   node json/scripts/build-pages.js >/dev/null || exit 1
   node json/scripts/sw-version.js >/dev/null || exit 1
   git add json/index.html json/??/index.html json/sitemap.xml json/sw.js
+  git add -A -- json/pix-qr.svg 2>/dev/null || true
 fi

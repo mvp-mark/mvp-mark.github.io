@@ -8,6 +8,7 @@ import { readFile } from "fs/promises";
 import http from "http";
 import { dirname, extname, join, sep } from "path";
 import puppeteer from "puppeteer-core";
+import { pixPayload } from "../pix.js";
 import { fileURLToPath } from "url";
 import { run, test } from "./harness.js";
 
@@ -59,7 +60,8 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: true,
 // any page error. Downloads are captured in window.__downloads. The page
 // starts in Portuguese unless `language` says otherwise (null: let the page
 // pick it from the browser's languages, set to `browserLanguages`).
-async function open(url = ORIGIN + "/", { language = "pt", browserLanguages = ["en-US", "en"] } = {}) {
+// `serve` replaces files: { "/path": [contentType, body] }.
+async function open(url = ORIGIN + "/", { language = "pt", browserLanguages = ["en-US", "en"], serve = null } = {}) {
   const context = await browser.createBrowserContext();
   await context.overridePermissions(ORIGIN, ["clipboard-read", "clipboard-write", "clipboard-sanitized-write"]);
   const page = await context.newPage();
@@ -85,6 +87,16 @@ async function open(url = ORIGIN + "/", { language = "pt", browserLanguages = ["
       window.__downloads.push(fetch(this.href).then((r) => r.text()).then((text) => ({ name: this.download, text })));
     };
   });
+  if (serve) {
+    // Without the service worker in between, so every request comes here.
+    await page.setBypassServiceWorker(true);
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const file = serve[new URL(req.url()).pathname];
+      if (file) req.respond({ status: 200, contentType: file[0], body: file[1] });
+      else req.continue();
+    });
+  }
   await page.goto(url, { waitUntil: "networkidle0" });
   page.done = async () => {
     // Closing a context while its service worker is still installing can
@@ -415,6 +427,38 @@ test("todos os idiomas carregam sem chaves faltando", async () => {
     assert.ok(await page.$eval("html", (el) => el.lang.startsWith(el.ownerDocument.getElementById("language").value)), code);
   }
   await page.done();
+});
+
+test("Apoiar: escondido sem configuração; com ela, PIX e link", async () => {
+  const plain = await open();
+  assert.equal(await plain.$eval("#donateBtn", (el) => el.hidden), true);
+  await plain.done();
+
+  const pix = { key: "fulano@example.com", name: "Fulano de Tal", city: "Sao Paulo" };
+  const serve = {
+    "/donate.js": ["text/javascript", `export default ${JSON.stringify({ pix, link: { url: "https://ko-fi.com/exemplo", label: "Ko-fi" } })};`],
+    "/pix-qr.svg": ["image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>'],
+  };
+  const page = await open(ORIGIN + "/", { serve });
+  await page.click("#donateBtn");
+  assert.equal(await page.$eval("#donateDialog", (el) => el.open), true);
+  assert.equal(await page.$eval("#donatePixKey", (el) => el.textContent), "fulano@example.com");
+  assert.ok(await page.$eval("#donateQr", (el) => el.complete && el.naturalWidth > 0));
+  assert.equal(await page.$eval("#donateLink", (el) => el.textContent), "Doar pelo Ko-fi ↗");
+  await page.click("#donateCopyPix");
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), pixPayload(pix));
+  // PIX first in Portuguese.
+  assert.ok(await page.evaluate(() => document.getElementById("donatePix").getBoundingClientRect().top <
+    document.getElementById("donateLinkBox").getBoundingClientRect().top));
+  await page.click("#donateClose");
+  await page.done();
+
+  const en = await open(ORIGIN + "/en/", { serve });
+  await en.click("#donateBtn");
+  assert.equal(await en.$eval("#donateLink", (el) => el.textContent), "Donate via Ko-fi ↗");
+  assert.ok(await en.evaluate(() => document.getElementById("donateLinkBox").getBoundingClientRect().top <
+    document.getElementById("donatePix").getBoundingClientRect().top));
+  await en.done();
 });
 
 await run();

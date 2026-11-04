@@ -1026,8 +1026,25 @@ textarea,
   .editor { padding: 12px; }
 }
 
-/* "Comparar" dialog */
-.diff-dialog {
+/* "Apoiar" (donations), at the bottom of the sidebar */
+.donate-btn {
+  align-self: stretch;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.08);
+  color: var(--sidebar-fg);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.donate-btn:hover { background: rgba(255,255,255,0.18); }
+.donate-btn[hidden] { display: none; }
+
+/* "Comparar" and "Apoiar" dialogs */
+.diff-dialog,
+.donate-dialog {
   width: min(720px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   padding: 18px 20px;
@@ -1039,10 +1056,61 @@ textarea,
   font-size: 13px;
 }
 
-.diff-dialog::backdrop { background: rgba(2, 6, 23, 0.45); }
+.diff-dialog::backdrop,
+.donate-dialog::backdrop { background: rgba(2, 6, 23, 0.45); }
 
-.diff-dialog h2 { margin: 0 0 6px; font-size: 16px; }
-.diff-dialog p { margin: 0 0 10px; color: var(--muted); }
+.diff-dialog h2,
+.donate-dialog h2 { margin: 0 0 6px; font-size: 16px; }
+.diff-dialog p,
+.donate-dialog p { margin: 0 0 10px; color: var(--muted); }
+
+.donate-dialog { width: min(560px, calc(100vw - 32px)); }
+
+.donate-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.donate-dialog.link-first #donateLinkBox { order: -1; }
+
+.donate-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.donate-option[hidden] { display: none; }
+.donate-option h3 { margin: 0; font-size: 14px; }
+.donate-option p { margin: 0; }
+
+.donate-qr {
+  background: #fff;
+  border-radius: 6px;
+}
+
+.donate-key code {
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  overflow-wrap: anywhere;
+  color: var(--panel-fg);
+}
+
+.donate-link {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.donate-link:hover { filter: brightness(1.08); }
 
 .diff-dialog textarea {
   display: block;

@@ -220,4 +220,16 @@ export default {
   "seo.feature.share": "サーバー不要の共有リンク",
   "seo.feature.offline": "オフラインで動作",
   "lang.hint": "このページは日本語でも利用できます。",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 プロジェクトを支援",
+  "donate.title": "JSON Formatter を支援",
+  "donate.intro": "JSON Formatter は無料・広告なしで、ブラウザーの中だけで動きます。お役に立てたなら、金額を問わずご寄付をご検討ください。",
+  "donate.pixTitle": "PIX（ブラジル）",
+  "donate.qrAlt": "PIX の QR コード",
+  "donate.pixHelp": "銀行アプリで PIX を選び、QR コードを読み取るか「コピー＆ペースト」用コードを使ってください。",
+  "donate.copyPix": "PIX コードをコピー（コピー＆ペースト用）",
+  "donate.pixKey": "PIX キー",
+  "donate.linkTitle": "カードまたは PayPal",
+  "donate.linkButton": "{platform} で寄付する ↗",
 };

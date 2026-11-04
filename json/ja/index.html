@@ -184,6 +184,8 @@
         </div>
         <ul class="history-list" id="historyList"></ul>
       </div>
+
+      <button class="donate-btn" id="donateBtn" type="button" hidden data-i18n="donate.button">💛 プロジェクトを支援</button>
     </aside>
 
     <main class="editor">
@@ -246,6 +248,25 @@
     </div>
     <p class="diff-summary" id="diffSummary" aria-live="polite"></p>
     <ul class="diff-list" id="diffList"></ul>
+  </dialog>
+
+  <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
+    <h2 id="donateTitle" data-i18n="donate.title">JSON Formatter を支援</h2>
+    <p data-i18n="donate.intro">JSON Formatter は無料・広告なしで、ブラウザーの中だけで動きます。お役に立てたなら、金額を問わずご寄付をご検討ください。</p>
+    <div class="donate-options">
+      <section class="donate-option" id="donatePix" hidden>
+        <h3 data-i18n="donate.pixTitle">PIX（ブラジル）</h3>
+        <img class="donate-qr" id="donateQr" width="180" height="180" alt="PIX の QR コード" data-i18n-attr="alt=donate.qrAlt">
+        <p data-i18n="donate.pixHelp">銀行アプリで PIX を選び、QR コードを読み取るか「コピー＆ペースト」用コードを使ってください。</p>
+        <button class="copy-btn" id="donateCopyPix" type="button" data-i18n="donate.copyPix">PIX コードをコピー（コピー＆ペースト用）</button>
+        <p class="donate-key"><span data-i18n="donate.pixKey">PIX キー</span>: <code id="donatePixKey"></code></p>
+      </section>
+      <section class="donate-option" id="donateLinkBox" hidden>
+        <h3 data-i18n="donate.linkTitle">カードまたは PayPal</h3>
+        <a class="donate-link" id="donateLink" target="_blank" rel="noopener"></a>
+      </section>
+    </div>
+    <button class="copy-btn" id="donateClose" type="button" data-i18n="common.close">閉じる</button>
   </dialog>
 
   <div class="popover" id="fixHelpPopover" hidden>

@@ -219,4 +219,16 @@ export default {
   "seo.feature.share": "Enlaces para compartir sin servidor",
   "seo.feature.offline": "Funciona sin conexión",
   "lang.hint": "Esta página también está en español.",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 Apoya el proyecto",
+  "donate.title": "Apoya JSON Formatter",
+  "donate.intro": "JSON Formatter es gratuito, sin anuncios y funciona solo en tu navegador. Si te ayudó, considera hacer una donación de cualquier monto.",
+  "donate.pixTitle": "PIX (Brasil)",
+  "donate.qrAlt": "Código QR de PIX",
+  "donate.pixHelp": "Abre la app de tu banco, elige PIX y escanea el código QR o usa el código copia y pega.",
+  "donate.copyPix": "Copiar código PIX (copia y pega)",
+  "donate.pixKey": "Clave PIX",
+  "donate.linkTitle": "Tarjeta o PayPal",
+  "donate.linkButton": "Donar con {platform} ↗",
 };

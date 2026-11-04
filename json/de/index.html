@@ -184,6 +184,8 @@
         </div>
         <ul class="history-list" id="historyList"></ul>
       </div>
+
+      <button class="donate-btn" id="donateBtn" type="button" hidden data-i18n="donate.button">💛 Projekt unterstützen</button>
     </aside>
 
     <main class="editor">
@@ -246,6 +248,25 @@
     </div>
     <p class="diff-summary" id="diffSummary" aria-live="polite"></p>
     <ul class="diff-list" id="diffList"></ul>
+  </dialog>
+
+  <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
+    <h2 id="donateTitle" data-i18n="donate.title">JSON Formatter unterstützen</h2>
+    <p data-i18n="donate.intro">JSON Formatter ist kostenlos, werbefrei und läuft nur in deinem Browser. Wenn er dir geholfen hat, freue ich mich über eine Spende in beliebiger Höhe.</p>
+    <div class="donate-options">
+      <section class="donate-option" id="donatePix" hidden>
+        <h3 data-i18n="donate.pixTitle">PIX (Brasilien)</h3>
+        <img class="donate-qr" id="donateQr" width="180" height="180" alt="PIX-QR-Code" data-i18n-attr="alt=donate.qrAlt">
+        <p data-i18n="donate.pixHelp">Öffne deine Banking-App, wähle PIX und scanne den QR-Code oder nutze den Code zum Kopieren und Einfügen.</p>
+        <button class="copy-btn" id="donateCopyPix" type="button" data-i18n="donate.copyPix">PIX-Code kopieren (Kopieren und Einfügen)</button>
+        <p class="donate-key"><span data-i18n="donate.pixKey">PIX-Schlüssel</span>: <code id="donatePixKey"></code></p>
+      </section>
+      <section class="donate-option" id="donateLinkBox" hidden>
+        <h3 data-i18n="donate.linkTitle">Karte oder PayPal</h3>
+        <a class="donate-link" id="donateLink" target="_blank" rel="noopener"></a>
+      </section>
+    </div>
+    <button class="copy-btn" id="donateClose" type="button" data-i18n="common.close">Schließen</button>
   </dialog>
 
   <div class="popover" id="fixHelpPopover" hidden>

@@ -222,4 +222,16 @@ export default {
   "seo.feature.share": "Links de compartilhamento sem servidor",
   "seo.feature.offline": "Funciona offline",
   "lang.hint": "Esta página também está em português.",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 Apoie o projeto",
+  "donate.title": "Apoie o JSON Formatter",
+  "donate.intro": "O JSON Formatter é gratuito, sem anúncios e roda só no seu navegador. Se ele te ajudou, considere uma doação de qualquer valor.",
+  "donate.pixTitle": "PIX (Brasil)",
+  "donate.qrAlt": "QR code do PIX",
+  "donate.pixHelp": "Abra o app do seu banco, escolha PIX e leia o QR code ou use o código copia e cola.",
+  "donate.copyPix": "Copiar código PIX (copia e cola)",
+  "donate.pixKey": "Chave PIX",
+  "donate.linkTitle": "Cartão ou PayPal",
+  "donate.linkButton": "Doar pelo {platform} ↗",
 };

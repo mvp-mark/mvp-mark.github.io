@@ -1,8 +1,9 @@
-// Tests for analyze.js and tree.js. Run with `npm test` from the json/ folder.
+// Tests for analyze.js, tree.js and pix.js. Run with `npm test` from the json/ folder.
 import { strict as assert } from "assert";
 import v8 from "v8";
 import { analyze, pack, unpack } from "../analyze.js";
 import { RawNumber, stringify } from "../parser.js";
+import { pixPayload } from "../pix.js";
 import { formatPath, searchValue } from "../tree.js";
 import { run, test } from "./harness.js";
 
@@ -84,6 +85,16 @@ test("searchValue stops at the limit", () => {
   const { matches, truncated } = searchValue(Array(10).fill("x"), "x", 3);
   assert.equal(matches.length, 3);
   assert.equal(truncated, true);
+});
+
+test("pixPayload builds a BR Code with the right CRC", () => {
+  // The example in the Banco Central's BR Code manual.
+  assert.equal(
+    pixPayload({ key: "123e4567-e12b-12d1-a456-426655440000", name: "Fulano de Tal", city: "BRASILIA" }),
+    "00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D"
+  );
+  assert.match(pixPayload({ key: "a@b.co", name: "João Conceição da Silva Júnior", city: "São José dos Campos" }),
+    /5925Joao Conceicao da Silva J6015Sao Jose dos Ca/);
 });
 
 run();

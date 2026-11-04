@@ -1,5 +1,5 @@
 // Set by `npm run sw-version` from a hash of ASSETS; CI fails if it's stale.
-const CACHE_NAME = "json-formatter-09f98f83a0";
+const CACHE_NAME = "json-formatter-fc6154c679";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,6 +21,8 @@ const ASSETS = [
   "./locales/it.js",
   "./locales/ja.js",
   "./locales/zh.js",
+  "./donate.js",
+  "./pix.js",
   "./en/",
   "./es/",
   "./fr/",

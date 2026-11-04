@@ -219,4 +219,16 @@ export default {
   "seo.feature.share": "Links zum Teilen ohne Server",
   "seo.feature.offline": "Funktioniert offline",
   "lang.hint": "Diese Seite gibt es auch auf Deutsch.",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 Projekt unterstützen",
+  "donate.title": "JSON Formatter unterstützen",
+  "donate.intro": "JSON Formatter ist kostenlos, werbefrei und läuft nur in deinem Browser. Wenn er dir geholfen hat, freue ich mich über eine Spende in beliebiger Höhe.",
+  "donate.pixTitle": "PIX (Brasilien)",
+  "donate.qrAlt": "PIX-QR-Code",
+  "donate.pixHelp": "Öffne deine Banking-App, wähle PIX und scanne den QR-Code oder nutze den Code zum Kopieren und Einfügen.",
+  "donate.copyPix": "PIX-Code kopieren (Kopieren und Einfügen)",
+  "donate.pixKey": "PIX-Schlüssel",
+  "donate.linkTitle": "Karte oder PayPal",
+  "donate.linkButton": "Über {platform} spenden ↗",
 };

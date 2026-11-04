@@ -220,4 +220,16 @@ export default {
   "seo.feature.share": "无需服务器的分享链接",
   "seo.feature.offline": "可离线使用",
   "lang.hint": "此页面也提供简体中文版。",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 支持本项目",
+  "donate.title": "支持 JSON Formatter",
+  "donate.intro": "JSON Formatter 免费、无广告，只在你的浏览器中运行。如果它帮到了你，欢迎任意金额的捐助。",
+  "donate.pixTitle": "PIX（巴西）",
+  "donate.qrAlt": "PIX 二维码",
+  "donate.pixHelp": "打开你的银行 App，选择 PIX，扫描二维码或使用“复制粘贴”代码。",
+  "donate.copyPix": "复制 PIX 代码（复制粘贴）",
+  "donate.pixKey": "PIX 密钥",
+  "donate.linkTitle": "银行卡或 PayPal",
+  "donate.linkButton": "通过 {platform} 捐助 ↗",
 };

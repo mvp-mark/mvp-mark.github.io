@@ -4,13 +4,16 @@
 // writes <code>/index.html with that locale's texts in the body (the
 // data-i18n* attributes), <head> (title, description, Open Graph, Twitter,
 // JSON-LD) and its own canonical URL, plus the hreflang links between all of
-// them (also refreshed in index.html itself) and sitemap.xml.
+// them (also refreshed in index.html itself) and sitemap.xml. With a PIX
+// key in donate.js it also draws pix-qr.svg, the QR code shown by "Apoiar".
 // `npm run build-pages` writes the files; with --check it only reports,
 // exiting with 1 when any is out of date (used by CI and the git hook).
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import donate from "../donate.js";
 import { DEFAULT_LOCALE, LOCALES, tIn } from "../i18n.js";
+import { pixPayload } from "../pix.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const source = readFileSync(join(root, "index.html"), "utf8");
@@ -122,6 +125,17 @@ function buildSitemap() {
 const outputs = new Map(CODES.map((code) => [join(root, pathFor(code), "index.html"), buildPage(code)]));
 outputs.set(join(root, "sitemap.xml"), buildSitemap());
 
+// The PIX QR code (qrcode is a dev dependency: `npm install` first). Without
+// a key there should be no QR code file either.
+const qrPath = join(root, "pix-qr.svg");
+let removeQr = false;
+if (donate.pix.key.trim()) {
+  const { default: QRCode } = await import("qrcode");
+  outputs.set(qrPath, await QRCode.toString(pixPayload(donate.pix), { type: "svg", margin: 2, errorCorrectionLevel: "M" }));
+} else {
+  removeQr = existsSync(qrPath);
+}
+
 const read = (path) => {
   try {
     return readFileSync(path, "utf8");
@@ -130,6 +144,7 @@ const read = (path) => {
   }
 };
 const stale = [...outputs].filter(([path, text]) => read(path) !== text).map(([path]) => path.slice(root.length + 1));
+if (removeQr) stale.push("pix-qr.svg (sem chave PIX em donate.js)");
 
 if (process.argv.includes("--check")) {
   if (stale.length) {
@@ -143,5 +158,6 @@ if (process.argv.includes("--check")) {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, text);
   }
+  if (removeQr) unlinkSync(qrPath);
   console.log(stale.length ? `Atualizado: ${stale.join(", ")}.` : "Nada a atualizar.");
 }

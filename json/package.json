@@ -9,6 +9,7 @@
     "check": "npm test && node scripts/build-pages.js --check && node scripts/sw-version.js --check"
   },
   "devDependencies": {
-    "puppeteer-core": "23.11.1"
+    "puppeteer-core": "23.11.1",
+    "qrcode": "1.5.4"
   }
 }

@@ -219,4 +219,16 @@ export default {
   "seo.feature.share": "Liens de partage sans serveur",
   "seo.feature.offline": "Fonctionne hors ligne",
   "lang.hint": "Cette page existe aussi en français.",
+
+  // "Apoiar" (donations)
+  "donate.button": "💛 Soutenir le projet",
+  "donate.title": "Soutenir JSON Formatter",
+  "donate.intro": "JSON Formatter est gratuit, sans publicité et fonctionne uniquement dans votre navigateur. S’il vous a été utile, pensez à faire un don, quel qu’en soit le montant.",
+  "donate.pixTitle": "PIX (Brésil)",
+  "donate.qrAlt": "QR code PIX",
+  "donate.pixHelp": "Ouvrez l’application de votre banque, choisissez PIX et scannez le QR code ou utilisez le code copier-coller.",
+  "donate.copyPix": "Copier le code PIX (copier-coller)",
+  "donate.pixKey": "Clé PIX",
+  "donate.linkTitle": "Carte ou PayPal",
+  "donate.linkButton": "Faire un don via {platform} ↗",
 };
