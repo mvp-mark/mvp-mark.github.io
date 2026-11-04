@@ -1,6 +1,6 @@
 import { analyze, unpack } from "./analyze.js";
 import { toCsv, toYaml } from "./convert.js";
-import donate from "./donate.js";
+// import donate from "./donate.js"; // "Apoiar": disabled for now (see below)
 import { openHistory } from "./history-store.js";
 import { DEFAULT_LOCALE, LOCALES, getLocale, localeTag, matchLocale, setLocale, t, tIn } from "./i18n.js";
 import {
@@ -11,7 +11,8 @@ import {
   scanTokens,
   stringify,
 } from "./parser.js";
-import { pixPayload } from "./pix.js";
+// import { pixPayload } from "./pix.js"; // "Apoiar": disabled for now (see below)
+import { describeSelection } from "./selection.js";
 import { SHARE_PREFIX, decodeShare, encodeShare } from "./share.js";
 import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
@@ -51,6 +52,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   const pathText = document.getElementById("pathText");
   const copyPathBtn = document.getElementById("copyPathBtn");
   const outputNote = document.getElementById("outputNote");
+  const inputSelection = document.getElementById("inputSelection");
+  const outputSelection = document.getElementById("outputSelection");
   const expandAllBtn = document.getElementById("expandAllBtn");
   const collapseAllBtn = document.getElementById("collapseAllBtn");
   const fixHelpBtn = document.getElementById("fixHelpBtn");
@@ -65,15 +68,15 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   const langHint = document.getElementById("langHint");
   const langHintLink = document.getElementById("langHintLink");
   const langHintClose = document.getElementById("langHintClose");
-  const donateBtn = document.getElementById("donateBtn");
-  const donateDialog = document.getElementById("donateDialog");
-  const donatePix = document.getElementById("donatePix");
-  const donateQr = document.getElementById("donateQr");
-  const donateCopyPix = document.getElementById("donateCopyPix");
-  const donatePixKey = document.getElementById("donatePixKey");
-  const donateLinkBox = document.getElementById("donateLinkBox");
-  const donateLink = document.getElementById("donateLink");
-  const donateClose = document.getElementById("donateClose");
+  // const donateBtn = document.getElementById("donateBtn");
+  // const donateDialog = document.getElementById("donateDialog");
+  // const donatePix = document.getElementById("donatePix");
+  // const donateQr = document.getElementById("donateQr");
+  // const donateCopyPix = document.getElementById("donateCopyPix");
+  // const donatePixKey = document.getElementById("donatePixKey");
+  // const donateLinkBox = document.getElementById("donateLinkBox");
+  // const donateLink = document.getElementById("donateLink");
+  // const donateClose = document.getElementById("donateClose");
 
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
@@ -642,6 +645,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     pathBar.hidden = true;
     outputNote.hidden = true;
     runSearch(false);
+    queueSelection();
   }
 
   function span(className, text) {
@@ -1315,6 +1319,79 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     if (next) setCursor(next);
   });
 
+  // Selection bar under each pane: counts and what the JSON selected in the
+  // input or the output is (selection.js), or a hint while nothing is.
+  let selectionQueued = false;
+
+  const localeNumber = (n) => n.toLocaleString(localeTag());
+
+  function selectionParts(text) {
+    const { chars, bytes, lines, json, date } = describeSelection(text);
+    const parts = [
+      t("selection.chars", { count: chars, n: localeNumber(chars) }),
+      t("selection.bytes", { count: bytes, n: localeNumber(bytes) }),
+    ];
+    if (lines > 1) parts.push(t("selection.lines", { count: lines, n: localeNumber(lines) }));
+    if (json) {
+      parts.push(t(`selection.${json.type}`, { count: json.count, n: localeNumber(json.count ?? 0) }));
+      if (json.depth > 1) parts.push(t("selection.depth", { n: localeNumber(json.depth) }));
+      if (json.nested) parts.push(t("selection.nested"));
+    }
+    if (date) parts.push(t("selection.date", { date: date.toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "medium" }) }));
+    return parts;
+  }
+
+  function showSelection(bar, parts) {
+    bar.classList.toggle("empty", parts === null);
+    if (parts === null) {
+      bar.textContent = t("selection.hint");
+      bar.removeAttribute("title");
+      return;
+    }
+    bar.replaceChildren(...parts.map((part) => span("selection-part", part)));
+    bar.title = parts.join(" · ");
+  }
+
+  function updateSelection() {
+    selectionQueued = false;
+    const { selectionStart: from, selectionEnd: to } = inputEl;
+    if (document.activeElement === inputEl && from !== to) {
+      const text = inputEl.value;
+      const start = lineCol(text, from);
+      const end = lineCol(text, to);
+      showSelection(inputSelection, [
+        ...selectionParts(text.slice(from, to)),
+        t("selection.range", { fromLine: start.line, fromCol: start.col, toLine: end.line, toCol: end.col }),
+      ]);
+    } else {
+      showSelection(inputSelection, null);
+    }
+
+    const selection = window.getSelection();
+    const range = selection.rangeCount && !selection.isCollapsed ? selection.getRangeAt(0) : null;
+    const common = range?.commonAncestorContainer;
+    if (common && outputEl.contains(common)) {
+      const parts = selectionParts(selection.toString());
+      // The innermost line holding the whole selection (plain-text output,
+      // YAML/CSV or a big compact one, is a single line with no tree).
+      const line = (common.nodeType === Node.ELEMENT_NODE ? common : common.parentElement).closest(".jv-line");
+      if (outputValue !== undefined && line?.firstElementChild) parts.push(t("selection.path", { path: formatPath(pathOfLine(line)) }));
+      showSelection(outputSelection, parts);
+    } else {
+      showSelection(outputSelection, null);
+    }
+  }
+
+  function queueSelection() {
+    if (selectionQueued) return;
+    selectionQueued = true;
+    requestAnimationFrame(updateSelection);
+  }
+
+  document.addEventListener("selectionchange", queueSelection);
+  // Not every browser reports a textarea's selection through the document.
+  ["select", "input", "focus", "blur"].forEach((type) => inputEl.addEventListener(type, queueSelection));
+
   // "Comparar": differences between the output's value and another JSON,
   // read with the same settings. Clicking one shows it in the output.
   const DIFF_LIMIT = 1000;
@@ -1726,6 +1803,7 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     updateLargeInput();
     updateLanguageHint();
     renderHistory();
+    queueSelection();
     if (inputEl.value.trim()) format();
     else updateSearchCount();
   }
@@ -1762,29 +1840,33 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
   updateLanguageHint();
 
-  // "Apoiar": shown only once donate.js has a PIX key or a link. PIX (only
-  // for Brazil) comes first on the Portuguese page, the link elsewhere.
-  const hasPix = donate.pix.key.trim() !== "";
-  const hasDonateLink = donate.link.url.trim() !== "";
-  donateBtn.hidden = !hasPix && !hasDonateLink;
-
-  donateBtn.addEventListener("click", () => {
-    donatePix.hidden = !hasPix;
-    donateLinkBox.hidden = !hasDonateLink;
-    if (hasPix) {
-      // Loaded only now: most visitors never open this.
-      if (!donateQr.getAttribute("src")) donateQr.src = new URL("pix-qr.svg", siteRoot).href;
-      donatePixKey.textContent = donate.pix.key;
-    }
-    if (hasDonateLink) {
-      donateLink.href = donate.link.url;
-      donateLink.textContent = t("donate.linkButton", { platform: donate.link.label || new URL(donate.link.url).hostname });
-    }
-    donateDialog.classList.toggle("link-first", getLocale() !== DEFAULT_LOCALE);
-    donateDialog.showModal();
-  });
-  donateCopyPix.addEventListener("click", () => copyText(pixPayload(donate.pix), donateCopyPix));
-  donateClose.addEventListener("click", () => donateDialog.close());
+  // "Apoiar" (donations) is disabled for now: to bring it back, uncomment
+  // this, the donate/pix imports and elements above, the button and dialog
+  // in index.html and its test in tests/e2e.test.js, and list donate.js and
+  // pix.js in sw.js's ASSETS again.
+  // // "Apoiar": shown only once donate.js has a PIX key or a link. PIX (only
+  // // for Brazil) comes first on the Portuguese page, the link elsewhere.
+  // const hasPix = donate.pix.key.trim() !== "";
+  // const hasDonateLink = donate.link.url.trim() !== "";
+  // donateBtn.hidden = !hasPix && !hasDonateLink;
+  //
+  // donateBtn.addEventListener("click", () => {
+  //   donatePix.hidden = !hasPix;
+  //   donateLinkBox.hidden = !hasDonateLink;
+  //   if (hasPix) {
+  //     // Loaded only now: most visitors never open this.
+  //     if (!donateQr.getAttribute("src")) donateQr.src = new URL("pix-qr.svg", siteRoot).href;
+  //     donatePixKey.textContent = donate.pix.key;
+  //   }
+  //   if (hasDonateLink) {
+  //     donateLink.href = donate.link.url;
+  //     donateLink.textContent = t("donate.linkButton", { platform: donate.link.label || new URL(donate.link.url).hostname });
+  //   }
+  //   donateDialog.classList.toggle("link-first", getLocale() !== DEFAULT_LOCALE);
+  //   donateDialog.showModal();
+  // });
+  // donateCopyPix.addEventListener("click", () => copyText(pixPayload(donate.pix), donateCopyPix));
+  // donateClose.addEventListener("click", () => donateDialog.close());
 
   fixHelpBtn.addEventListener("click", () => (fixHelpPopover.hidden = false));
   fixHelpClose.addEventListener("click", () => (fixHelpPopover.hidden = true));

@@ -220,6 +220,25 @@ export default {
   "seo.feature.offline": "Works offline",
   "lang.hint": "This page is also available in English.",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "Select some text to see its details",
+  "selection.chars": { one: "{n} character", other: "{n} characters" },
+  "selection.bytes": { one: "{n} byte", other: "{n} bytes" },
+  "selection.lines": { one: "{n} line", other: "{n} lines" },
+  "selection.range": "Ln {fromLine}, Col {fromCol} → Ln {toLine}, Col {toCol}",
+  "selection.object": { one: "object with {n} key", other: "object with {n} keys" },
+  "selection.array": { one: "array with {n} item", other: "array with {n} items" },
+  "selection.string": { one: "string of {n} character", other: "string of {n} characters" },
+  "selection.number": "number",
+  "selection.boolean": "boolean",
+  "selection.null": "null",
+  "selection.members": { one: "{n} key-value pair", other: "{n} key-value pairs" },
+  "selection.items": { one: "{n} array item", other: "{n} array items" },
+  "selection.depth": "{n} levels of nesting",
+  "selection.nested": "with JSON inside",
+  "selection.date": "Unix timestamp: {date}",
+  "selection.path": "at {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 Support the project",
   "donate.title": "Support JSON Formatter",

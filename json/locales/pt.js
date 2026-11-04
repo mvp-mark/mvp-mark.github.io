@@ -223,6 +223,25 @@ export default {
   "seo.feature.offline": "Funciona offline",
   "lang.hint": "Esta página também está em português.",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "Selecione um trecho para ver os detalhes",
+  "selection.chars": { one: "{n} caractere", other: "{n} caracteres" },
+  "selection.bytes": { one: "{n} byte", other: "{n} bytes" },
+  "selection.lines": { one: "{n} linha", other: "{n} linhas" },
+  "selection.range": "Ln {fromLine}, Col {fromCol} → Ln {toLine}, Col {toCol}",
+  "selection.object": { one: "objeto com {n} chave", other: "objeto com {n} chaves" },
+  "selection.array": { one: "array com {n} item", other: "array com {n} itens" },
+  "selection.string": { one: "string de {n} caractere", other: "string de {n} caracteres" },
+  "selection.number": "número",
+  "selection.boolean": "booleano",
+  "selection.null": "null",
+  "selection.members": { one: "{n} par chave-valor", other: "{n} pares chave-valor" },
+  "selection.items": { one: "{n} item de array", other: "{n} itens de array" },
+  "selection.depth": "{n} níveis de aninhamento",
+  "selection.nested": "com JSON dentro",
+  "selection.date": "timestamp Unix: {date}",
+  "selection.path": "em {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 Apoie o projeto",
   "donate.title": "Apoie o JSON Formatter",

@@ -221,6 +221,25 @@ export default {
   "seo.feature.offline": "オフラインで動作",
   "lang.hint": "このページは日本語でも利用できます。",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "範囲を選択すると詳細が表示されます",
+  "selection.chars": { one: "{n} 文字", other: "{n} 文字" },
+  "selection.bytes": { one: "{n} バイト", other: "{n} バイト" },
+  "selection.lines": { one: "{n} 行", other: "{n} 行" },
+  "selection.range": "行 {fromLine}、列 {fromCol} → 行 {toLine}、列 {toCol}",
+  "selection.object": { one: "{n} キーのオブジェクト", other: "{n} キーのオブジェクト" },
+  "selection.array": { one: "{n} 件の配列", other: "{n} 件の配列" },
+  "selection.string": { one: "{n} 文字の文字列", other: "{n} 文字の文字列" },
+  "selection.number": "数値",
+  "selection.boolean": "真偽値",
+  "selection.null": "null",
+  "selection.members": { one: "キーと値のペア {n} 組", other: "キーと値のペア {n} 組" },
+  "selection.items": { one: "配列の要素 {n} 件", other: "配列の要素 {n} 件" },
+  "selection.depth": "ネスト {n} 階層",
+  "selection.nested": "中に JSON あり",
+  "selection.date": "Unix タイムスタンプ: {date}",
+  "selection.path": "場所: {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 プロジェクトを支援",
   "donate.title": "JSON Formatter を支援",

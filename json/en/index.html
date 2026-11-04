@@ -185,7 +185,9 @@
         <ul class="history-list" id="historyList"></ul>
       </div>
 
+      <!-- "Apoiar" (doações): desativado por enquanto (ver app.js).
       <button class="donate-btn" id="donateBtn" type="button" hidden data-i18n="donate.button">💛 Support the project</button>
+      -->
     </aside>
 
     <main class="editor">
@@ -203,6 +205,7 @@
             <pre class="input-highlight" id="inputHighlight" aria-hidden="true"></pre>
             <textarea id="input" placeholder="Paste, type or drop a JSON file here..." spellcheck="false" data-i18n-attr="placeholder=input.placeholder"></textarea>
           </div>
+          <div class="selection-bar" id="inputSelection" role="status" data-i18n="selection.hint">Select some text to see its details</div>
         </section>
         <section class="pane">
           <header>
@@ -233,6 +236,7 @@
           </div>
           <div class="output-note" id="outputNote" role="status" hidden></div>
           <div class="json-view" id="output" data-placeholder="The formatted JSON will appear here..." role="region" aria-label="Formatted output (arrow keys move between lines)" tabindex="0" data-i18n-attr="data-placeholder=output.placeholder;aria-label=output.label"></div>
+          <div class="selection-bar" id="outputSelection" role="status" data-i18n="selection.hint">Select some text to see its details</div>
         </section>
       </div>
     </main>
@@ -250,6 +254,7 @@
     <ul class="diff-list" id="diffList"></ul>
   </dialog>
 
+  <!-- "Apoiar" (doações): desativado por enquanto (ver app.js).
   <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
     <h2 id="donateTitle" data-i18n="donate.title">Support JSON Formatter</h2>
     <p data-i18n="donate.intro">JSON Formatter is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.</p>
@@ -268,6 +273,7 @@
     </div>
     <button class="copy-btn" id="donateClose" type="button" data-i18n="common.close">Close</button>
   </dialog>
+  -->
 
   <div class="popover" id="fixHelpPopover" hidden>
     <p data-i18n-html="fixHelp.introHtml"><strong>Fix JSON</strong> tries to fix common problems automatically before formatting:</p>

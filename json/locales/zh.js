@@ -221,6 +221,25 @@ export default {
   "seo.feature.offline": "可离线使用",
   "lang.hint": "此页面也提供简体中文版。",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "选中一段文本即可查看详情",
+  "selection.chars": { one: "{n} 个字符", other: "{n} 个字符" },
+  "selection.bytes": { one: "{n} 字节", other: "{n} 字节" },
+  "selection.lines": { one: "{n} 行", other: "{n} 行" },
+  "selection.range": "行 {fromLine}，列 {fromCol} → 行 {toLine}，列 {toCol}",
+  "selection.object": { one: "含 {n} 个键的对象", other: "含 {n} 个键的对象" },
+  "selection.array": { one: "含 {n} 项的数组", other: "含 {n} 项的数组" },
+  "selection.string": { one: "{n} 个字符的字符串", other: "{n} 个字符的字符串" },
+  "selection.number": "数字",
+  "selection.boolean": "布尔值",
+  "selection.null": "null",
+  "selection.members": { one: "{n} 个键值对", other: "{n} 个键值对" },
+  "selection.items": { one: "{n} 个数组项", other: "{n} 个数组项" },
+  "selection.depth": "{n} 层嵌套",
+  "selection.nested": "内含 JSON",
+  "selection.date": "Unix 时间戳：{date}",
+  "selection.path": "位于 {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 支持本项目",
   "donate.title": "支持 JSON Formatter",

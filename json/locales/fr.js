@@ -220,6 +220,25 @@ export default {
   "seo.feature.offline": "Fonctionne hors ligne",
   "lang.hint": "Cette page existe aussi en français.",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "Sélectionnez un passage pour voir ses détails",
+  "selection.chars": { one: "{n} caractère", other: "{n} caractères" },
+  "selection.bytes": { one: "{n} octet", other: "{n} octets" },
+  "selection.lines": { one: "{n} ligne", other: "{n} lignes" },
+  "selection.range": "Ln {fromLine}, Col {fromCol} → Ln {toLine}, Col {toCol}",
+  "selection.object": { one: "objet avec {n} clé", other: "objet avec {n} clés" },
+  "selection.array": { one: "tableau de {n} élément", other: "tableau de {n} éléments" },
+  "selection.string": { one: "chaîne de {n} caractère", other: "chaîne de {n} caractères" },
+  "selection.number": "nombre",
+  "selection.boolean": "booléen",
+  "selection.null": "null",
+  "selection.members": { one: "{n} paire clé-valeur", other: "{n} paires clé-valeur" },
+  "selection.items": { one: "{n} élément de tableau", other: "{n} éléments de tableau" },
+  "selection.depth": "{n} niveaux d’imbrication",
+  "selection.nested": "avec du JSON dedans",
+  "selection.date": "timestamp Unix : {date}",
+  "selection.path": "dans {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 Soutenir le projet",
   "donate.title": "Soutenir JSON Formatter",

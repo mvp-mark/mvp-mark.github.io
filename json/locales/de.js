@@ -220,6 +220,25 @@ export default {
   "seo.feature.offline": "Funktioniert offline",
   "lang.hint": "Diese Seite gibt es auch auf Deutsch.",
 
+  // Selection bar under each pane (selection.js)
+  "selection.hint": "Text markieren, um Details zu sehen",
+  "selection.chars": { one: "{n} Zeichen", other: "{n} Zeichen" },
+  "selection.bytes": { one: "{n} Byte", other: "{n} Bytes" },
+  "selection.lines": { one: "{n} Zeile", other: "{n} Zeilen" },
+  "selection.range": "Zeile {fromLine}, Spalte {fromCol} → Zeile {toLine}, Spalte {toCol}",
+  "selection.object": { one: "Objekt mit {n} Schlüssel", other: "Objekt mit {n} Schlüsseln" },
+  "selection.array": { one: "Array mit {n} Element", other: "Array mit {n} Elementen" },
+  "selection.string": { one: "String mit {n} Zeichen", other: "String mit {n} Zeichen" },
+  "selection.number": "Zahl",
+  "selection.boolean": "Boolean",
+  "selection.null": "null",
+  "selection.members": { one: "{n} Schlüssel-Wert-Paar", other: "{n} Schlüssel-Wert-Paare" },
+  "selection.items": { one: "{n} Array-Element", other: "{n} Array-Elemente" },
+  "selection.depth": "{n} Verschachtelungsebenen",
+  "selection.nested": "mit JSON darin",
+  "selection.date": "Unix-Zeitstempel: {date}",
+  "selection.path": "in {path}",
+
   // "Apoiar" (donations)
   "donate.button": "💛 Projekt unterstützen",
   "donate.title": "JSON Formatter unterstützen",

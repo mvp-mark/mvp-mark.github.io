@@ -592,6 +592,27 @@ html, body {
   background: var(--status-bg);
 }
 
+/* Under each pane: what's selected in it. One line that's always there, so
+   the pane doesn't change height while text is being selected. */
+.selection-bar {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--panel-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selection-bar.empty { color: var(--muted); }
+
+.selection-part + .selection-part::before {
+  content: " · ";
+  color: var(--muted);
+}
+
 textarea,
 .json-view,
 .input-highlight {
