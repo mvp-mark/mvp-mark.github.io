@@ -80,6 +80,8 @@ export default {
   "fixHelp.commentsHtml": "Comentários <code>//</code> e <code>/* */</code>",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (estilo Python)",
   "fixHelp.stringifiedHtml": "JSON inteiro entre aspas (<code>\"{...}\"</code>) ou serializado duas vezes",
+  "fixHelp.nestedHtml": "JSON serializado dentro de um campo (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) vira objeto",
+  "fixHelp.fragmentHtml": "Trecho copiado do meio do corpo (<code>\"chave\": valor</code> sem <code>{ }</code>, ou cortado no meio de uma string)",
   "fixHelp.emptyValuesHtml": "Valores vazios (<code>{texto:,...}</code> vira <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Vários objetos soltos (<code>{...} {...}</code>) viram um array (<code>[{...}, {...}]</code>)",
 
@@ -98,6 +100,9 @@ export default {
   "status.valid": "JSON válido.",
   "status.fixNote": "Correções automáticas aplicadas (Fix JSON): chaves/valores sem aspas, comentários, vírgulas sobrando ou faltando etc.",
   "status.joined": "{count} objetos separados foram agrupados em um array.",
+  "status.expanded": { one: "1 string com JSON serializado foi expandida em objeto/array (desmarque Fix JSON para manter como texto).", other: "{count} strings com JSON serializado foram expandidas em objeto/array (desmarque Fix JSON para manter como texto)." },
+  "status.fragmentWrapped": "O trecho \"chave\": valor estava sem { } em volta; foi lido como um objeto.",
+  "status.quoteClosed": "A string aberta no fim do texto não tinha a aspa final; ela foi fechada.",
   "status.fileError": "Não consegui ler o arquivo {name}.",
 
   // Automatic fixes (shown above the output)
@@ -168,6 +173,7 @@ export default {
   "mark.closerAdded": "← '{char}' adicionado (faltava)",
   "mark.openerAdded": "← '{' adicionado (faltava abrir)",
   "mark.bracesAdded": "← '{ }' adicionados",
+  "mark.expanded": "← string com JSON serializado, expandida",
 
   // parser.js: parse errors ({found} is a quoted character or one of the
   // found.* texts)

@@ -79,6 +79,8 @@ export default {
   "fixHelp.commentsHtml": "<code>//</code> と <code>/* */</code> のコメント",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code>（Python 形式）",
   "fixHelp.stringifiedHtml": "全体がクォートで囲まれた JSON（<code>\"{...}\"</code>）や二重にシリアライズされた JSON",
+  "fixHelp.nestedHtml": "フィールド内のシリアライズされた JSON（<code>\"payload\": \"{\\\"a\\\":1}\"</code>）をオブジェクトに展開",
+  "fixHelp.fragmentHtml": "本文の途中からコピーした断片（<code>{ }</code> のない <code>\"キー\": 値</code>、または文字列の途中で切れたもの）",
   "fixHelp.emptyValuesHtml": "空の値（<code>{text:,...}</code> は <code>\"\"</code> になります）",
   "fixHelp.concatenatedHtml": "複数の独立したオブジェクト（<code>{...} {...}</code>）は配列（<code>[{...}, {...}]</code>）になります",
 
@@ -97,6 +99,9 @@ export default {
   "status.valid": "有効な JSON です。",
   "status.fixNote": "自動修正を適用しました（JSON を自動修正）: クォートのないキー/値、コメント、余分または不足したカンマなど。",
   "status.joined": "{count} 個の独立したオブジェクトを 1 つの配列にまとめました。",
+  "status.expanded": { one: "シリアライズされた JSON を含む文字列 1 件をオブジェクト/配列に展開しました（文字列のままにするには Fix JSON をオフにしてください）。", other: "シリアライズされた JSON を含む文字列 {count} 件をオブジェクト/配列に展開しました（文字列のままにするには Fix JSON をオフにしてください）。" },
+  "status.fragmentWrapped": "\"キー\": 値 の断片に { } がなかったため、オブジェクトとして読み込みました。",
+  "status.quoteClosed": "テキスト末尾で開いたままの文字列に閉じ引用符がなかったため、追加しました。",
   "status.fileError": "ファイル {name} を読み込めませんでした。",
 
   // Automatic fixes (shown above the output)
@@ -167,6 +172,7 @@ export default {
   "mark.closerAdded": "← '{char}' を追加（不足）",
   "mark.openerAdded": "← '{' を追加（不足）",
   "mark.bracesAdded": "← '{ }' を追加",
+  "mark.expanded": "← シリアライズされた JSON の文字列を展開",
 
   // parser.js: parse errors
   "found.end": "テキストの末尾",

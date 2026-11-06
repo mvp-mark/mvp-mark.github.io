@@ -1031,7 +1031,8 @@ textarea,
 
 .jv-missing { background: color-mix(in srgb, var(--danger) 22%, transparent); }
 
-.jv-missing-label {
+.jv-missing-label,
+.jv-expanded-label {
   margin-left: 10px;
   font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 11.5px;
@@ -1039,6 +1040,8 @@ textarea,
   color: var(--danger);
   user-select: none;
 }
+
+.jv-expanded-label { color: var(--accent); }
 
 @media (max-width: 720px) {
   .app { flex-direction: column; height: auto; min-height: 100vh; }

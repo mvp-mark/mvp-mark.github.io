@@ -15,7 +15,33 @@ const clone = (value) => v8.deserialize(v8.serialize(value));
 test("analyze returns the value of valid JSON", () => {
   const { ok, fail } = analyze('{"a": [1, 2]}', options());
   assert.equal(fail, undefined);
-  assert.deepEqual(ok, { value: { a: [1, 2] }, usedFix: false, joined: false, repaired: null });
+  assert.deepEqual(ok, { value: { a: [1, 2] }, usedFix: false, joined: false, repaired: null, completed: null, expanded: null });
+});
+
+test("analyze expands serialized JSON inside the body only with Fix JSON", () => {
+  const raw = '{"id": 1, "payload": "{\\"valor\\":\\"200\\",\\"tag\\":[]}"}';
+  const { ok } = analyze(raw, options());
+  assert.deepEqual(ok.value, { id: 1, payload: { valor: "200", tag: [] } });
+  assert.deepEqual([...ok.expanded.keys()], ['["payload"]']);
+  assert.equal(ok.usedFix, false);
+  const off = analyze(raw, options({ fix: false })).ok;
+  assert.equal(off.value.payload, '{"valor":"200","tag":[]}');
+  assert.equal(off.expanded, null);
+});
+
+test("analyze completes a snippet cut from the middle of a body", () => {
+  const raw = '"serialized_payload": "{\\"valor\\":\\"200\\",\\"enviar_qr_code\\":true,\\"tag\\":[]}';
+  const { ok } = analyze(raw, options());
+  assert.deepEqual(ok.value, { serialized_payload: { valor: "200", enviar_qr_code: true, tag: [] } });
+  assert.deepEqual({ wrapped: ok.completed.wrapped, quoteClosed: ok.completed.quoteClosed }, { wrapped: true, quoteClosed: true });
+  assert.ok(analyze(raw, options({ fix: false })).fail);
+});
+
+test("analyze expands serialized JSON in output with closers added", () => {
+  const { fail } = analyze('{"a": "[1, 2]", "b": [1', options());
+  assert.deepEqual(fail.closed.value, { a: [1, 2], b: [1] });
+  assert.equal(fail.closed.expanded, 1);
+  assert.ok(fail.closed.marks.get('["a"]').expanded);
 });
 
 test("analyze applies Fix JSON and reports missing commas", () => {

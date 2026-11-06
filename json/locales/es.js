@@ -78,6 +78,8 @@ export default {
   "fixHelp.commentsHtml": "Comentarios <code>//</code> y <code>/* */</code>",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (estilo Python)",
   "fixHelp.stringifiedHtml": "JSON entero entre comillas (<code>\"{...}\"</code>) o serializado dos veces",
+  "fixHelp.nestedHtml": "JSON serializado dentro de un campo (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) se convierte en objeto",
+  "fixHelp.fragmentHtml": "Fragmento copiado del medio del cuerpo (<code>\"clave\": valor</code> sin <code>{ }</code>, o cortado dentro de una string)",
   "fixHelp.emptyValuesHtml": "Valores vacíos (<code>{texto:,...}</code> pasa a <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Varios objetos sueltos (<code>{...} {...}</code>) pasan a un array (<code>[{...}, {...}]</code>)",
 
@@ -96,6 +98,9 @@ export default {
   "status.valid": "JSON válido.",
   "status.fixNote": "Correcciones automáticas aplicadas (Corregir JSON): claves/valores sin comillas, comentarios, comas sobrantes o faltantes, etc.",
   "status.joined": "{count} objetos separados se agruparon en un array.",
+  "status.expanded": { one: "1 string con JSON serializado se expandió en objeto/array (desmarca Fix JSON para mantenerlo como texto).", other: "{count} strings con JSON serializado se expandieron en objetos/arrays (desmarca Fix JSON para mantenerlos como texto)." },
+  "status.fragmentWrapped": "El fragmento \"clave\": valor no tenía { } alrededor; se leyó como un objeto.",
+  "status.quoteClosed": "A la string abierta al final del texto le faltaba la comilla de cierre; se cerró.",
   "status.fileError": "No pude leer el archivo {name}.",
 
   // Automatic fixes (shown above the output)
@@ -166,6 +171,7 @@ export default {
   "mark.closerAdded": "← '{char}' agregado (faltaba)",
   "mark.openerAdded": "← '{' agregada (faltaba abrir)",
   "mark.bracesAdded": "← '{ }' agregadas",
+  "mark.expanded": "← string con JSON serializado, expandido",
 
   // parser.js: parse errors
   "found.end": "el final del texto",

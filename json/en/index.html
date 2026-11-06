@@ -285,6 +285,8 @@
       <li data-i18n-html="fixHelp.commentsHtml"><code>//</code> and <code>/* */</code> comments</li>
       <li data-i18n-html="fixHelp.pythonHtml"><code>True</code>/<code>False</code>/<code>None</code> (Python style)</li>
       <li data-i18n-html="fixHelp.stringifiedHtml">Whole JSON in quotes (<code>"{...}"</code>) or serialized twice</li>
+      <li data-i18n-html="fixHelp.nestedHtml">Serialized JSON inside a field (<code>"payload": "{\"a\":1}"</code>) becomes an object</li>
+      <li data-i18n-html="fixHelp.fragmentHtml">A snippet copied from the middle of a body (<code>"key": value</code> without <code>{ }</code>, or cut off inside a string)</li>
       <li data-i18n-html="fixHelp.emptyValuesHtml">Empty values (<code>{text:,...}</code> becomes <code>""</code>)</li>
       <li data-i18n-html="fixHelp.concatenatedHtml">Several loose objects (<code>{...} {...}</code>) become an array (<code>[{...}, {...}]</code>)</li>
     </ul>

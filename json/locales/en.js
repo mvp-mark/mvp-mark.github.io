@@ -78,6 +78,8 @@ export default {
   "fixHelp.commentsHtml": "<code>//</code> and <code>/* */</code> comments",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (Python style)",
   "fixHelp.stringifiedHtml": "Whole JSON in quotes (<code>\"{...}\"</code>) or serialized twice",
+  "fixHelp.nestedHtml": "Serialized JSON inside a field (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) becomes an object",
+  "fixHelp.fragmentHtml": "A snippet copied from the middle of a body (<code>\"key\": value</code> without <code>{ }</code>, or cut off inside a string)",
   "fixHelp.emptyValuesHtml": "Empty values (<code>{text:,...}</code> becomes <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Several loose objects (<code>{...} {...}</code>) become an array (<code>[{...}, {...}]</code>)",
 
@@ -96,6 +98,9 @@ export default {
   "status.valid": "Valid JSON.",
   "status.fixNote": "Automatic fixes applied (Fix JSON): unquoted keys/values, comments, extra or missing commas, etc.",
   "status.joined": "{count} separate objects were grouped into an array.",
+  "status.expanded": { one: "1 string with serialized JSON was expanded into an object/array (uncheck Fix JSON to keep it as text).", other: "{count} strings with serialized JSON were expanded into objects/arrays (uncheck Fix JSON to keep them as text)." },
+  "status.fragmentWrapped": "The \"key\": value snippet had no { } around it; it was read as an object.",
+  "status.quoteClosed": "The string left open at the end of the text was missing its closing quote; it was closed.",
   "status.fileError": "Couldn't read the file {name}.",
 
   // Automatic fixes (shown above the output)
@@ -166,6 +171,7 @@ export default {
   "mark.closerAdded": "← '{char}' added (was missing)",
   "mark.openerAdded": "← '{' added (was missing)",
   "mark.bracesAdded": "← '{ }' added",
+  "mark.expanded": "← string with serialized JSON, expanded",
 
   // parser.js: parse errors
   "found.end": "the end of the text",

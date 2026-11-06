@@ -409,6 +409,68 @@ export function unwrapStringified(value, allowLenient) {
   return { value, unwrapped, repaired };
 }
 
+// Strings in the middle of a body that hold serialized JSON, as APIs and
+// logs often carry ("payload": "{\"a\":1}"), parsed into the objects/arrays
+// they encode, serialized ones inside those included. Only strings that are
+// strictly valid JSON objects/arrays count, so text that merely starts with
+// '[' stays text. Changes `value` in place; returns the marks (path ->
+// { label, expanded }, as renderValue takes them) of the strings expanded,
+// or null if there were none.
+export function expandSerialized(value) {
+  const marks = new Map();
+  const isContainer = (v) => v !== null && typeof v === "object" && !(v instanceof RawNumber);
+  const encodesContainer = (s) => {
+    const text = s.trim();
+    const pair = text[0] + text[text.length - 1];
+    return pair === "{}" || pair === "[]";
+  };
+  if (!isContainer(value)) return null;
+  const stack = [[value, []]];
+  while (stack.length) {
+    const [node, path] = stack.pop();
+    for (const key of Array.isArray(node) ? node.keys() : Object.keys(node)) {
+      let child = node[key];
+      if (typeof child === "string" && encodesContainer(child)) {
+        try {
+          child = parseJson(child);
+        } catch {
+          continue;
+        }
+        node[key] = child; // an own "__proto__" (parsed JSON) is set, not the prototype
+        marks.set(JSON.stringify([...path, key]), { label: t("mark.expanded"), expanded: true });
+      }
+      if (isContainer(child)) stack.push([child, [...path, key]]);
+    }
+  }
+  return marks.size ? marks : null;
+}
+
+// A piece copied from the middle of a body: `"key": value, ...` without the
+// { } around it, and/or cut inside a string (its closing quote missing at
+// the end of the text). Returns { text, wrapped, quoteClosed } with what
+// would complete it, or null if it looks like neither.
+export function completeFragment(raw) {
+  let text = raw.trim();
+  let quoteClosed = false;
+  let last = null; // the last string: [quote, pos]
+  forEachLiteral(text, (kind, pos) => {
+    if (kind === "string") last = [text[pos], pos];
+  });
+  if (last) {
+    const [quote, pos] = last;
+    let j = pos + 1;
+    while (j < text.length && text[j] !== quote && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
+    if (j >= text.length) {
+      // A dangling backslash would escape the quote added after it.
+      text = text.replace(/\\$/, "") + quote;
+      quoteClosed = true;
+    }
+  }
+  const wrapped = /^(?:"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|[A-Za-z_$][\w$-]*)\s*:/.test(text);
+  if (wrapped) text = "{" + text + "}";
+  return wrapped || quoteClosed ? { text, wrapped, quoteClosed } : null;
+}
+
 const CLOSER = { "{": "}", "[": "]" };
 
 // Brackets outside strings and comments, in order: [{ char, pos }].

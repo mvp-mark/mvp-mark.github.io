@@ -78,6 +78,8 @@ export default {
   "fixHelp.commentsHtml": "Commenti <code>//</code> e <code>/* */</code>",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (stile Python)",
   "fixHelp.stringifiedHtml": "JSON intero tra virgolette (<code>\"{...}\"</code>) o serializzato due volte",
+  "fixHelp.nestedHtml": "JSON serializzato dentro un campo (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) diventa un oggetto",
+  "fixHelp.fragmentHtml": "Frammento copiato dal mezzo di un body (<code>\"chiave\": valore</code> senza <code>{ }</code>, o tagliato dentro una stringa)",
   "fixHelp.emptyValuesHtml": "Valori vuoti (<code>{testo:,...}</code> diventa <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Più oggetti separati (<code>{...} {...}</code>) diventano un array (<code>[{...}, {...}]</code>)",
 
@@ -96,6 +98,9 @@ export default {
   "status.valid": "JSON valido.",
   "status.fixNote": "Correzioni automatiche applicate (Correggi JSON): chiavi/valori senza virgolette, commenti, virgole in più o mancanti, ecc.",
   "status.joined": "{count} oggetti separati sono stati raggruppati in un array.",
+  "status.expanded": { one: "1 stringa con JSON serializzato è stata espansa in oggetto/array (deseleziona Fix JSON per tenerla come testo).", other: "{count} stringhe con JSON serializzato sono state espanse in oggetti/array (deseleziona Fix JSON per tenerle come testo)." },
+  "status.fragmentWrapped": "Il frammento \"chiave\": valore non aveva { } intorno; è stato letto come un oggetto.",
+  "status.quoteClosed": "Alla stringa aperta alla fine del testo mancavano le virgolette di chiusura; sono state aggiunte.",
   "status.fileError": "Impossibile leggere il file {name}.",
 
   // Automatic fixes (shown above the output)
@@ -166,6 +171,7 @@ export default {
   "mark.closerAdded": "← '{char}' aggiunta (mancava)",
   "mark.openerAdded": "← '{' aggiunta (mancava)",
   "mark.bracesAdded": "← '{ }' aggiunte",
+  "mark.expanded": "← stringa con JSON serializzato, espansa",
 
   // parser.js: parse errors
   "found.end": "la fine del testo",

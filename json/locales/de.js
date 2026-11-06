@@ -78,6 +78,8 @@ export default {
   "fixHelp.commentsHtml": "Kommentare <code>//</code> und <code>/* */</code>",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (Python-Stil)",
   "fixHelp.stringifiedHtml": "Ganzes JSON in Anführungszeichen (<code>\"{...}\"</code>) oder doppelt serialisiert",
+  "fixHelp.nestedHtml": "Serialisiertes JSON in einem Feld (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) wird zum Objekt",
+  "fixHelp.fragmentHtml": "Ausschnitt aus der Mitte eines Bodys (<code>\"Schlüssel\": Wert</code> ohne <code>{ }</code>, oder mitten in einem String abgeschnitten)",
   "fixHelp.emptyValuesHtml": "Leere Werte (<code>{text:,...}</code> wird zu <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Mehrere lose Objekte (<code>{...} {...}</code>) werden zu einem Array (<code>[{...}, {...}]</code>)",
 
@@ -96,6 +98,9 @@ export default {
   "status.valid": "Gültiges JSON.",
   "status.fixNote": "Automatische Korrekturen angewendet (JSON reparieren): Schlüssel/Werte ohne Anführungszeichen, Kommentare, überzählige oder fehlende Kommas usw.",
   "status.joined": "{count} einzelne Objekte wurden zu einem Array zusammengefasst.",
+  "status.expanded": { one: "1 String mit serialisiertem JSON wurde in ein Objekt/Array umgewandelt (Fix JSON abwählen, um ihn als Text zu behalten).", other: "{count} Strings mit serialisiertem JSON wurden in Objekte/Arrays umgewandelt (Fix JSON abwählen, um sie als Text zu behalten)." },
+  "status.fragmentWrapped": "Dem Ausschnitt \"Schlüssel\": Wert fehlten die { } drumherum; er wurde als Objekt gelesen.",
+  "status.quoteClosed": "Dem am Textende offenen String fehlte das schließende Anführungszeichen; es wurde ergänzt.",
   "status.fileError": "Die Datei {name} konnte nicht gelesen werden.",
 
   // Automatic fixes (shown above the output)
@@ -166,6 +171,7 @@ export default {
   "mark.closerAdded": "← '{char}' eingefügt (fehlte)",
   "mark.openerAdded": "← '{' eingefügt (fehlte)",
   "mark.bracesAdded": "← '{ }' eingefügt",
+  "mark.expanded": "← String mit serialisiertem JSON, aufgeklappt",
 
   // parser.js: parse errors
   "found.end": "das Ende des Textes",

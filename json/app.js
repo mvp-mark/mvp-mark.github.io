@@ -480,11 +480,13 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   // JSON), with each non-empty object/array wrapped in a collapsible
   // .jv-node. Primitive values get .jv-val.
   // marks (optional): Map of JSON.stringify(path) -> { label, openAdded,
-  // closeAdded }, for containers whose brackets were added by an automatic
-  // fix: the added brackets are highlighted (an existing opener only
-  // outlined). The label goes next to the opener when only the opener was
-  // added; otherwise it's returned for the caller to place at the end of the
-  // closer's line (after any comma).
+  // closeAdded, expanded }, for containers whose brackets were added by an
+  // automatic fix: the added brackets are highlighted (an existing opener
+  // only outlined). The label goes next to the opener when only the opener
+  // was added; otherwise it's returned for the caller to place at the end of
+  // the closer's line (after any comma). An `expanded` mark (a string with
+  // serialized JSON shown as what it encodes) only puts its label at the
+  // opener.
   function renderValue(parent, value, indent, depth, path = [], marks = null, budget = { left: EAGER_LINES }) {
     if (value === null || typeof value !== "object" || value instanceof RawNumber) {
       parent.append(span(`jv-${primitiveKind(value)} jv-val`, stringify(value)));
@@ -498,12 +500,12 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
     const mark = marks === null ? undefined : marks.get(JSON.stringify(path));
     const openEl = bracket(open, depth);
     const closeEl = bracket(close, depth);
-    if (mark) {
+    if (mark && !mark.expanded) {
       openEl.classList.add(mark.openAdded ? "jv-missing" : "jv-unclosed");
       if (mark.closeAdded !== false) closeEl.classList.add("jv-missing");
     }
-    const label = mark ? span("jv-missing-label", mark.label) : null;
-    const labelAtOpen = mark !== undefined && mark.closeAdded === false;
+    const label = mark ? span(mark.expanded ? "jv-expanded-label" : "jv-missing-label", mark.label) : null;
+    const labelAtOpen = mark !== undefined && (mark.closeAdded === false || mark.expanded === true);
 
     if (n === 0) {
       parent.append(openEl, closeEl);
@@ -1618,7 +1620,8 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       const { source, info, offset, closed, reformat, repair } = result.fail;
       if (closed) {
         const summary = showFixedOutput({ value: shown(closed.value), marks: closed.marks, fixed: closed.fixed, closed }, source, offset);
-        finish([summary, ...(closed.usedLenient || source !== raw ? [FIX_NOTE] : []), ...warnings], false);
+        const expandedNote = closed.expanded ? [t("status.expanded", { count: closed.expanded })] : [];
+        finish([summary, ...expandedNote, ...(closed.usedLenient || source !== raw ? [FIX_NOTE] : []), ...warnings], false);
       } else if (reformat !== null) {
         replaceInput(reformat);
         format({ unwrapped: source !== raw });
@@ -1629,14 +1632,18 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
       return;
     }
 
-    const { value, usedFix, joined, repaired } = result.ok;
+    const { value, usedFix, joined, repaired, completed, expanded } = result.ok;
     const notes = [];
     if (joined) notes.push(t("status.joined", { count: value.length }));
+    if (completed?.wrapped) notes.push(t("status.fragmentWrapped"));
+    if (completed?.quoteClosed) notes.push(t("status.quoteClosed"));
     if (repaired) {
-      notes.push(showFixedOutput({ ...repaired, value: shown(value) }, repaired.source, repaired.offset));
+      const marks = expanded ? new Map([...(repaired.marks ?? []), ...expanded]) : repaired.marks;
+      notes.push(showFixedOutput({ ...repaired, value: shown(value), marks }, repaired.source, repaired.offset));
     } else {
-      showOutput(shown(value), indentFor(templateEl.value));
+      showOutput(shown(value), indentFor(templateEl.value), expanded);
     }
+    if (expanded) notes.push(t("status.expanded", { count: expanded.size }));
     if (usedFix) notes.push(FIX_NOTE);
     notes.push(...warnings);
     finish(notes, !repaired);

@@ -5,6 +5,8 @@ import { run, test } from "./harness.js";
 import {
   RawNumber,
   autoCloseBrackets,
+  completeFragment,
+  expandSerialized,
   findJsonError,
   formatLoose,
   insertCommas,
@@ -190,6 +192,39 @@ test("findJsonError explains common mistakes", () => {
 
 test("formatLoose re-indents text that isn't valid JSON", () => {
   assert.equal(formatLoose("{a:1,b:[1,2],c:{d:x}}", "  "), "{\n  a: 1,\n  b: [\n    1,\n    2\n  ],\n  c: {\n    d: x\n  }\n}");
+});
+
+test("expandSerialized parses strings holding JSON objects/arrays, nested ones too", () => {
+  const value = parseJson(JSON.stringify({
+    a: JSON.stringify({ b: JSON.stringify([1, { c: 2 }]), n: "12" }),
+    list: [" [true] ", "[not json]", "{x}", "texto"],
+    keep: "{\"unterminated\": 1",
+  }));
+  const marks = expandSerialized(value);
+  assert.deepEqual(value, {
+    a: { b: [1, { c: 2 }], n: "12" },
+    list: [[true], "[not json]", "{x}", "texto"],
+    keep: '{"unterminated": 1',
+  });
+  assert.deepEqual([...marks.keys()].sort(), ['["a","b"]', '["a"]', '["list",0]'].sort());
+  assert.equal(expandSerialized({ a: "x", b: [1] }), null);
+  assert.equal(expandSerialized("{}"), null);
+});
+
+test("expandSerialized keeps big numbers and __proto__ keys", () => {
+  const value = JSON.parse('{"__proto__": "{\\"id\\": 12345678901234567890}"}');
+  expandSerialized(value);
+  assert.equal(stringify(value), '{"__proto__":{"id":12345678901234567890}}');
+  assert.equal(Object.getPrototypeOf(value), Object.prototype);
+});
+
+test("completeFragment wraps key: value snippets and closes a string cut at the end", () => {
+  assert.deepEqual(completeFragment('"a": 1, "b": 2'), { text: '{"a": 1, "b": 2}', wrapped: true, quoteClosed: false });
+  assert.deepEqual(completeFragment('  "a": "x\\"y  \n'), { text: '{"a": "x\\"y"}', wrapped: true, quoteClosed: true });
+  assert.deepEqual(completeFragment('"{\\"a\\":1}'), { text: '"{\\"a\\":1}"', wrapped: false, quoteClosed: true });
+  assert.deepEqual(completeFragment("nome: 'Ana\\"), { text: "{nome: 'Ana'}", wrapped: true, quoteClosed: true });
+  assert.equal(completeFragment('{"a": 1}'), null);
+  assert.equal(completeFragment('"a" "b"'), null);
 });
 
 run();

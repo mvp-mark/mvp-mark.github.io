@@ -78,6 +78,8 @@ export default {
   "fixHelp.commentsHtml": "Commentaires <code>//</code> et <code>/* */</code>",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code> (style Python)",
   "fixHelp.stringifiedHtml": "JSON entier entre guillemets (<code>\"{...}\"</code>) ou sérialisé deux fois",
+  "fixHelp.nestedHtml": "JSON sérialisé dans un champ (<code>\"payload\": \"{\\\"a\\\":1}\"</code>) devient un objet",
+  "fixHelp.fragmentHtml": "Extrait copié du milieu d'un corps (<code>\"clé\": valeur</code> sans <code>{ }</code>, ou coupé au milieu d'une chaîne)",
   "fixHelp.emptyValuesHtml": "Valeurs vides (<code>{texte:,...}</code> devient <code>\"\"</code>)",
   "fixHelp.concatenatedHtml": "Plusieurs objets isolés (<code>{...} {...}</code>) deviennent un tableau (<code>[{...}, {...}]</code>)",
 
@@ -96,6 +98,9 @@ export default {
   "status.valid": "JSON valide.",
   "status.fixNote": "Corrections automatiques appliquées (Corriger le JSON) : clés/valeurs sans guillemets, commentaires, virgules en trop ou manquantes, etc.",
   "status.joined": "{count} objets séparés ont été regroupés dans un tableau.",
+  "status.expanded": { one: "1 chaîne contenant du JSON sérialisé a été développée en objet/tableau (décochez Fix JSON pour la garder en texte).", other: "{count} chaînes contenant du JSON sérialisé ont été développées en objets/tableaux (décochez Fix JSON pour les garder en texte)." },
+  "status.fragmentWrapped": "L'extrait \"clé\": valeur n'avait pas de { } autour ; il a été lu comme un objet.",
+  "status.quoteClosed": "La chaîne ouverte à la fin du texte n'avait pas de guillemet fermant ; il a été ajouté.",
   "status.fileError": "Impossible de lire le fichier {name}.",
 
   // Automatic fixes (shown above the output)
@@ -166,6 +171,7 @@ export default {
   "mark.closerAdded": "← '{char}' ajouté (manquait)",
   "mark.openerAdded": "← '{' ajoutée (manquait)",
   "mark.bracesAdded": "← '{ }' ajoutées",
+  "mark.expanded": "← chaîne contenant du JSON sérialisé, développée",
 
   // parser.js: parse errors
   "found.end": "la fin du texte",

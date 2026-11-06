@@ -6,6 +6,8 @@ import {
   RawNumber,
   autoCloseBrackets,
   brokenWrapperInner,
+  completeFragment,
+  expandSerialized,
   formatLoose,
   insertCommas,
   isHardToEdit,
@@ -34,19 +36,28 @@ function reformatForEditing(raw, source, offset, indent) {
 // options: { spec, fix (Fix JSON on), indent (used to re-indent the input),
 // reformatted (the input was just re-indented: don't do it again) }.
 // Returns { warnings, ok } when there's a value to show, where
-//   ok: { value, usedFix, joined, repaired }; repaired (or null) is an
-//   automatic fix to point out, with the `source` text it applies to and
-//   its `offset` in the input (-1 if it isn't there verbatim);
+//   ok: { value, usedFix, joined, repaired, completed, expanded }; repaired
+//   (or null) is an automatic fix to point out, with the `source` text it
+//   applies to and its `offset` in the input (-1 if it isn't there
+//   verbatim); completed (or null) is completeFragment's fix of the input;
+//   expanded (or null) the marks of the strings with serialized JSON that
+//   were expanded (expandSerialized, with Fix JSON on);
 // or { warnings, fail } when there isn't, where
 //   fail: { source, info, offset, closed, reformat, repair }: info is
 //   { pos, message } about `source`; closed is autoCloseBrackets' fix (shown
-//   instead of the error); reformat the re-indented input to retry with;
+//   instead of the error, its marks including expandSerialized's and its
+//   `expanded` the count of those); reformat the re-indented input to retry with;
 //   repair suggestBracketRepair's suggestion for the error view.
 export function analyze(raw, { spec, fix: shouldFix, indent, reformatted }) {
   const warnings = validateSpec(raw, spec);
 
   const fail = (source, info, offset) => {
     const closed = autoCloseBrackets(source, shouldFix);
+    const expanded = closed && shouldFix ? expandSerialized(closed.value) : null;
+    if (expanded) {
+      expanded.forEach((mark, path) => closed.marks.set(path, mark));
+      closed.expanded = expanded.size;
+    }
     const reformat = closed || reformatted ? null : reformatForEditing(raw, source, offset, indent);
     const repair = closed || reformat !== null ? null : suggestBracketRepair(source, shouldFix);
     return { warnings, fail: { source, info, offset, closed, reformat, repair } };
@@ -82,6 +93,19 @@ export function analyze(raw, { spec, fix: shouldFix, indent, reformatted }) {
         if (!commas.length) return { value, usedFix: true };
         return { value, usedFix: true, repaired: { commas, fixed: insertCommas(source, commas), source, offset } };
       } catch (lenientErr) {
+        const completed = source === raw ? completeFragment(raw) : null;
+        if (completed) {
+          const result = read(completed.text, -1);
+          // Its own notes say what was completed; the general Fix JSON note
+          // only when the completed text still needed more than that.
+          let lenient = false;
+          try {
+            parseJson(completed.text);
+          } catch {
+            lenient = true;
+          }
+          if (!result.fail) return { ...result, usedFix: lenient, completed };
+        }
         const wrapped = source === raw ? brokenWrapperInner(raw) : null;
         if (wrapped) return read(wrapped.text, wrapped.offset);
         return fail(source, { pos: lenientErr.pos ?? null, message: lenientErr.message }, offset);
@@ -103,8 +127,10 @@ export function analyze(raw, { spec, fix: shouldFix, indent, reformatted }) {
     usedFix = true;
   }
   if (layerRepair) repaired = { ...layerRepair, offset: raw.indexOf(layerRepair.source) };
+  const expanded = shouldFix ? expandSerialized(value) : null;
 
-  return { warnings, ok: { value, usedFix, joined: Boolean(result.joined), repaired } };
+  const completed = result.completed ?? null;
+  return { warnings, ok: { value, usedFix, joined: Boolean(result.joined), repaired, completed, expanded } };
 }
 
 // Sets a property even when it's named __proto__ (valid as a JSON key).

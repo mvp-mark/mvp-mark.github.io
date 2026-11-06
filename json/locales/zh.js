@@ -79,6 +79,8 @@ export default {
   "fixHelp.commentsHtml": "<code>//</code> 和 <code>/* */</code> 注释",
   "fixHelp.pythonHtml": "<code>True</code>/<code>False</code>/<code>None</code>（Python 风格）",
   "fixHelp.stringifiedHtml": "整个 JSON 被引号包裹（<code>\"{...}\"</code>）或被序列化了两次",
+  "fixHelp.nestedHtml": "字段中的序列化 JSON（<code>\"payload\": \"{\\\"a\\\":1}\"</code>）展开为对象",
+  "fixHelp.fragmentHtml": "从正文中间复制的片段（没有 <code>{ }</code> 的 <code>\"键\": 值</code>，或在字符串中间被截断）",
   "fixHelp.emptyValuesHtml": "空值（<code>{text:,...}</code> 变为 <code>\"\"</code>）",
   "fixHelp.concatenatedHtml": "多个独立的对象（<code>{...} {...}</code>）合并为数组（<code>[{...}, {...}]</code>）",
 
@@ -97,6 +99,9 @@ export default {
   "status.valid": "JSON 有效。",
   "status.fixNote": "已应用自动修复（自动修复 JSON）：无引号的键/值、注释、多余或缺少的逗号等。",
   "status.joined": "已将 {count} 个独立对象合并为一个数组。",
+  "status.expanded": { one: "1 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选 Fix JSON 可保留为文本）。", other: "{count} 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选 Fix JSON 可保留为文本）。" },
+  "status.fragmentWrapped": "\"键\": 值 片段外面没有 { }，已按对象读取。",
+  "status.quoteClosed": "文本末尾未闭合的字符串缺少结束引号，已补上。",
   "status.fileError": "无法读取文件 {name}。",
 
   // Automatic fixes (shown above the output)
@@ -167,6 +172,7 @@ export default {
   "mark.closerAdded": "← 已添加 '{char}'（原本缺少）",
   "mark.openerAdded": "← 已添加 '{'（原本缺少）",
   "mark.bracesAdded": "← 已添加 '{ }'",
+  "mark.expanded": "← 含序列化 JSON 的字符串，已展开",
 
   // parser.js: parse errors
   "found.end": "文本末尾",
