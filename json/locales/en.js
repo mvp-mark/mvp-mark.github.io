@@ -1,7 +1,7 @@
 // English. Same keys as pt.js (see there and i18n.js).
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter Online – Format, Validate and Fix JSON",
+  "page.title": "fix-json – Fix, Format and Validate JSON Online",
   "theme.toLight": "☀️ Light",
   "theme.toDark": "🌙 Dark",
   "theme.toLightLabel": "Switch to the light theme",
@@ -212,9 +212,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "Format, validate and fix JSON online, free and right in your browser. Fixes trailing commas, single quotes, unquoted keys and comments, with RFC 8259, ECMA-404 and JSON5 support.",
-  "page.shareDescription": "Format, validate and fix JSON online, free and right in your browser.",
-  "page.imageAlt": "JSON Formatter – format, validate and fix JSON online",
+  "page.description": "Fix broken JSON in one click: trailing commas, single quotes, unquoted keys, comments and missing brackets. Format and validate (RFC 8259, ECMA-404, JSON5) for free, right in your browser.",
+  "page.shareDescription": "Fix, format and validate JSON online. Free, private and right in your browser.",
+  "page.imageAlt": "fix-json – fix, format and validate JSON online",
   "seo.feature.indent": "Formatting with configurable indentation",
   "seo.feature.specs": "RFC 8259, RFC 4627, ECMA-404 and JSON5 validation",
   "seo.feature.fix": "Automatic repair of invalid JSON",
@@ -247,8 +247,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 Support the project",
-  "donate.title": "Support JSON Formatter",
-  "donate.intro": "JSON Formatter is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.",
+  "donate.title": "Support fix-json",
+  "donate.intro": "fix-json is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.",
   "donate.pixTitle": "PIX (Brazil)",
   "donate.qrAlt": "PIX QR code",
   "donate.pixHelp": "Open your bank app, choose PIX and scan the QR code or use the copy-and-paste code.",

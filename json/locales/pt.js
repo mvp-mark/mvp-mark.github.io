@@ -3,7 +3,7 @@
 // "Html" are trusted markup.
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter Online – Formatar, Validar e Corrigir JSON",
+  "page.title": "fix-json – Corrigir, Formatar e Validar JSON Online",
   "theme.toLight": "☀️ Claro",
   "theme.toDark": "🌙 Escuro",
   "theme.toLightLabel": "Mudar para o tema claro",
@@ -215,9 +215,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "Formate, valide e corrija JSON online, grátis e direto no navegador. Corrige vírgulas finais, aspas simples, chaves sem aspas e comentários, com suporte a RFC 8259, ECMA-404 e JSON5.",
-  "page.shareDescription": "Formate, valide e corrija JSON online, grátis e direto no navegador.",
-  "page.imageAlt": "JSON Formatter – formate, valide e corrija JSON online",
+  "page.description": "Corrija JSON quebrado em um clique: vírgulas sobrando, aspas simples, chaves sem aspas, comentários e colchetes faltando. Formate e valide (RFC 8259, ECMA-404, JSON5) grátis, direto no navegador.",
+  "page.shareDescription": "Corrija, formate e valide JSON online. Grátis, privado e direto no navegador.",
+  "page.imageAlt": "fix-json – corrija, formate e valide JSON online",
   "seo.feature.indent": "Formatação com indentação configurável",
   "seo.feature.specs": "Validação RFC 8259, RFC 4627, ECMA-404 e JSON5",
   "seo.feature.fix": "Correção automática de JSON inválido",
@@ -250,8 +250,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 Apoie o projeto",
-  "donate.title": "Apoie o JSON Formatter",
-  "donate.intro": "O JSON Formatter é gratuito, sem anúncios e roda só no seu navegador. Se ele te ajudou, considere uma doação de qualquer valor.",
+  "donate.title": "Apoie o fix-json",
+  "donate.intro": "O fix-json é gratuito, sem anúncios e roda só no seu navegador. Se ele te ajudou, considere uma doação de qualquer valor.",
   "donate.pixTitle": "PIX (Brasil)",
   "donate.qrAlt": "QR code do PIX",
   "donate.pixHelp": "Abra o app do seu banco, escolha PIX e leia o QR code ou use o código copia e cola.",

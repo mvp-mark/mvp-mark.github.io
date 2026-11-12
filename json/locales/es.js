@@ -1,7 +1,7 @@
 // Español. Same keys as pt.js (see there and i18n.js).
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter Online – Formatear, Validar y Corregir JSON",
+  "page.title": "fix-json – Corregir, Formatear y Validar JSON en Línea",
   "theme.toLight": "☀️ Claro",
   "theme.toDark": "🌙 Oscuro",
   "theme.toLightLabel": "Cambiar al tema claro",
@@ -212,9 +212,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "Formatea, valida y corrige JSON en línea, gratis y directamente en el navegador. Corrige comas finales, comillas simples, claves sin comillas y comentarios, con soporte para RFC 8259, ECMA-404 y JSON5.",
-  "page.shareDescription": "Formatea, valida y corrige JSON en línea, gratis y directamente en el navegador.",
-  "page.imageAlt": "JSON Formatter – formatea, valida y corrige JSON en línea",
+  "page.description": "Corrige JSON roto en un clic: comas sobrantes, comillas simples, claves sin comillas, comentarios y corchetes faltantes. Formatea y valida (RFC 8259, ECMA-404, JSON5) gratis, directamente en el navegador.",
+  "page.shareDescription": "Corrige, formatea y valida JSON en línea. Gratis, privado y directamente en el navegador.",
+  "page.imageAlt": "fix-json – corrige, formatea y valida JSON en línea",
   "seo.feature.indent": "Formateo con sangría configurable",
   "seo.feature.specs": "Validación RFC 8259, RFC 4627, ECMA-404 y JSON5",
   "seo.feature.fix": "Corrección automática de JSON inválido",
@@ -247,8 +247,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 Apoya el proyecto",
-  "donate.title": "Apoya JSON Formatter",
-  "donate.intro": "JSON Formatter es gratuito, sin anuncios y funciona solo en tu navegador. Si te ayudó, considera hacer una donación de cualquier monto.",
+  "donate.title": "Apoya fix-json",
+  "donate.intro": "fix-json es gratuito, sin anuncios y funciona solo en tu navegador. Si te ayudó, considera hacer una donación de cualquier monto.",
   "donate.pixTitle": "PIX (Brasil)",
   "donate.qrAlt": "Código QR de PIX",
   "donate.pixHelp": "Abre la app de tu banco, elige PIX y escanea el código QR o usa el código copia y pega.",

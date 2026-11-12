@@ -392,9 +392,9 @@ test("cada idioma tem sua página estática, legível sem JavaScript", async () 
   });
   const fr = await fetchText("/fr/");
   assert.match(fr, /<html lang="fr" data-locale="fr" data-root="\.\.\/">/);
-  assert.match(fr, /<title>JSON Formatter en ligne – Formater, valider et corriger du JSON<\/title>/);
-  assert.match(fr, /<link rel="canonical" href="https:\/\/mvp-json\.vercel\.app\/fr\/">/);
-  assert.match(fr, /<link rel="alternate" hreflang="x-default" href="https:\/\/mvp-json\.vercel\.app\/">/);
+  assert.match(fr, /<title>fix-json – Corriger, formater et valider du JSON en ligne<\/title>/);
+  assert.match(fr, /<link rel="canonical" href="https:\/\/fix-json\.dev\/fr\/">/);
+  assert.match(fr, /<link rel="alternate" hreflang="x-default" href="https:\/\/fix-json\.dev\/">/);
   assert.match(fr, /<meta property="og:locale" content="fr_FR">/);
   assert.match(fr, />Formater<\/button>/);
   assert.match(fr, /"inLanguage": "fr"/);

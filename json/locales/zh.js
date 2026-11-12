@@ -2,7 +2,7 @@
 // plural forms, so "one" and "other" say the same.
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter 在线工具 – 格式化、校验和修复 JSON",
+  "page.title": "fix-json – 在线修复、格式化和校验 JSON",
   "theme.toLight": "☀️ 浅色",
   "theme.toDark": "🌙 深色",
   "theme.toLightLabel": "切换到浅色主题",
@@ -213,9 +213,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "在线格式化、校验和修复 JSON，免费且直接在浏览器中运行。可修复末尾逗号、单引号、无引号的键和注释，支持 RFC 8259、ECMA-404 和 JSON5。",
-  "page.shareDescription": "在线格式化、校验和修复 JSON，免费且直接在浏览器中运行。",
-  "page.imageAlt": "JSON Formatter – 在线格式化、校验和修复 JSON",
+  "page.description": "一键修复损坏的 JSON：多余的逗号、单引号、无引号的键、注释和缺失的括号。支持按 RFC 8259、ECMA-404 和 JSON5 格式化与校验，免费且直接在浏览器中运行。",
+  "page.shareDescription": "在线修复、格式化和校验 JSON。免费、私密，直接在浏览器中运行。",
+  "page.imageAlt": "fix-json – 在线修复、格式化和校验 JSON",
   "seo.feature.indent": "可配置缩进的格式化",
   "seo.feature.specs": "RFC 8259、RFC 4627、ECMA-404 和 JSON5 校验",
   "seo.feature.fix": "自动修复无效的 JSON",
@@ -248,8 +248,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 支持本项目",
-  "donate.title": "支持 JSON Formatter",
-  "donate.intro": "JSON Formatter 免费、无广告，只在你的浏览器中运行。如果它帮到了你，欢迎任意金额的捐助。",
+  "donate.title": "支持 fix-json",
+  "donate.intro": "fix-json 免费、无广告，只在你的浏览器中运行。如果它帮到了你，欢迎任意金额的捐助。",
   "donate.pixTitle": "PIX（巴西）",
   "donate.qrAlt": "PIX 二维码",
   "donate.pixHelp": "打开你的银行 App，选择 PIX，扫描二维码或使用“复制粘贴”代码。",

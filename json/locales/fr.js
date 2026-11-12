@@ -1,7 +1,7 @@
 // Français. Same keys as pt.js (see there and i18n.js).
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter en ligne – Formater, valider et corriger du JSON",
+  "page.title": "fix-json – Corriger, formater et valider du JSON en ligne",
   "theme.toLight": "☀️ Clair",
   "theme.toDark": "🌙 Sombre",
   "theme.toLightLabel": "Passer au thème clair",
@@ -212,9 +212,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "Formatez, validez et corrigez du JSON en ligne, gratuitement et directement dans le navigateur. Corrige les virgules finales, les guillemets simples, les clés sans guillemets et les commentaires, avec prise en charge de RFC 8259, ECMA-404 et JSON5.",
-  "page.shareDescription": "Formatez, validez et corrigez du JSON en ligne, gratuitement et directement dans le navigateur.",
-  "page.imageAlt": "JSON Formatter – formatez, validez et corrigez du JSON en ligne",
+  "page.description": "Réparez du JSON cassé en un clic : virgules en trop, guillemets simples, clés sans guillemets, commentaires et crochets manquants. Formatez et validez (RFC 8259, ECMA-404, JSON5) gratuitement, directement dans le navigateur.",
+  "page.shareDescription": "Corrigez, formatez et validez du JSON en ligne. Gratuit, privé et directement dans le navigateur.",
+  "page.imageAlt": "fix-json – corrigez, formatez et validez du JSON en ligne",
   "seo.feature.indent": "Formatage avec indentation configurable",
   "seo.feature.specs": "Validation RFC 8259, RFC 4627, ECMA-404 et JSON5",
   "seo.feature.fix": "Correction automatique du JSON invalide",
@@ -247,8 +247,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 Soutenir le projet",
-  "donate.title": "Soutenir JSON Formatter",
-  "donate.intro": "JSON Formatter est gratuit, sans publicité et fonctionne uniquement dans votre navigateur. S’il vous a été utile, pensez à faire un don, quel qu’en soit le montant.",
+  "donate.title": "Soutenir fix-json",
+  "donate.intro": "fix-json est gratuit, sans publicité et fonctionne uniquement dans votre navigateur. S’il vous a été utile, pensez à faire un don, quel qu’en soit le montant.",
   "donate.pixTitle": "PIX (Brésil)",
   "donate.qrAlt": "QR code PIX",
   "donate.pixHelp": "Ouvrez l’application de votre banque, choisissez PIX et scannez le QR code ou utilisez le code copier-coller.",

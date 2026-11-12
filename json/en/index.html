@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JSON Formatter Online – Format, Validate and Fix JSON</title>
-<meta name="description" content="Format, validate and fix JSON online, free and right in your browser. Fixes trailing commas, single quotes, unquoted keys and comments, with RFC 8259, ECMA-404 and JSON5 support.">
+<title>fix-json – Fix, Format and Validate JSON Online</title>
+<meta name="description" content="Fix broken JSON in one click: trailing commas, single quotes, unquoted keys, comments and missing brackets. Format and validate (RFC 8259, ECMA-404, JSON5) for free, right in your browser.">
 <meta name="robots" content="index, follow">
 <meta name="author" content="Marcus Vinícius Peixoto Paulo">
 <meta name="theme-color" content="#0f172a">
-<link rel="canonical" href="https://mvp-json.vercel.app/en/">
+<link rel="canonical" href="https://fix-json.dev/en/">
 <!-- i18n:alternates (scripts/build-pages.js) -->
-<link rel="alternate" hreflang="pt-BR" href="https://mvp-json.vercel.app/">
-<link rel="alternate" hreflang="en" href="https://mvp-json.vercel.app/en/">
-<link rel="alternate" hreflang="es" href="https://mvp-json.vercel.app/es/">
-<link rel="alternate" hreflang="fr" href="https://mvp-json.vercel.app/fr/">
-<link rel="alternate" hreflang="de" href="https://mvp-json.vercel.app/de/">
-<link rel="alternate" hreflang="it" href="https://mvp-json.vercel.app/it/">
-<link rel="alternate" hreflang="ja" href="https://mvp-json.vercel.app/ja/">
-<link rel="alternate" hreflang="zh-CN" href="https://mvp-json.vercel.app/zh/">
-<link rel="alternate" hreflang="x-default" href="https://mvp-json.vercel.app/">
+<link rel="alternate" hreflang="pt-BR" href="https://fix-json.dev/">
+<link rel="alternate" hreflang="en" href="https://fix-json.dev/en/">
+<link rel="alternate" hreflang="es" href="https://fix-json.dev/es/">
+<link rel="alternate" hreflang="fr" href="https://fix-json.dev/fr/">
+<link rel="alternate" hreflang="de" href="https://fix-json.dev/de/">
+<link rel="alternate" hreflang="it" href="https://fix-json.dev/it/">
+<link rel="alternate" hreflang="ja" href="https://fix-json.dev/ja/">
+<link rel="alternate" hreflang="zh-CN" href="https://fix-json.dev/zh/">
+<link rel="alternate" hreflang="x-default" href="https://fix-json.dev/">
 <meta property="og:locale:alternate" content="pt_BR">
 <meta property="og:locale:alternate" content="es_ES">
 <meta property="og:locale:alternate" content="fr_FR">
@@ -30,27 +30,27 @@
 
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
-<meta property="og:site_name" content="JSON Formatter">
-<meta property="og:title" content="JSON Formatter Online – Format, Validate and Fix JSON">
-<meta property="og:description" content="Format, validate and fix JSON online, free and right in your browser.">
-<meta property="og:url" content="https://mvp-json.vercel.app/en/">
-<meta property="og:image" content="https://mvp-json.vercel.app/og-image.png">
+<meta property="og:site_name" content="fix-json">
+<meta property="og:title" content="fix-json – Fix, Format and Validate JSON Online">
+<meta property="og:description" content="Fix, format and validate JSON online. Free, private and right in your browser.">
+<meta property="og:url" content="https://fix-json.dev/en/">
+<meta property="og:image" content="https://fix-json.dev/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="JSON Formatter – format, validate and fix JSON online">
+<meta property="og:image:alt" content="fix-json – fix, format and validate JSON online">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="JSON Formatter Online – Format, Validate and Fix JSON">
-<meta name="twitter:description" content="Format, validate and fix JSON online, free and right in your browser.">
-<meta name="twitter:image" content="https://mvp-json.vercel.app/og-image.png">
+<meta name="twitter:title" content="fix-json – Fix, Format and Validate JSON Online">
+<meta name="twitter:description" content="Fix, format and validate JSON online. Free, private and right in your browser.">
+<meta name="twitter:image" content="https://fix-json.dev/og-image.png">
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "JSON Formatter",
-  "url": "https://mvp-json.vercel.app/en/",
-  "description": "Format, validate and fix JSON online, free and right in your browser.",
+  "name": "fix-json",
+  "url": "https://fix-json.dev/en/",
+  "description": "Fix, format and validate JSON online. Free, private and right in your browser.",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any",
   "browserRequirements": "Requires JavaScript",
@@ -85,7 +85,7 @@
 <body data-theme="dark" data-syntax="default" data-rainbow="on">
   <div class="app">
     <aside class="sidebar">
-      <h1 class="brand">JSON Formatter</h1>
+      <h1 class="brand">fix-json</h1>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to the light theme" data-i18n="theme.toLight" data-i18n-attr="aria-label=theme.toLightLabel">☀️ Light</button>
       <p class="lang-hint" id="langHint" hidden><a id="langHintLink" href="#"></a><button type="button" id="langHintClose" aria-label="Close" data-i18n-attr="aria-label=common.close">×</button></p>
 
@@ -256,8 +256,8 @@
 
   <!-- "Apoiar" (doações): desativado por enquanto (ver app.js).
   <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
-    <h2 id="donateTitle" data-i18n="donate.title">Support JSON Formatter</h2>
-    <p data-i18n="donate.intro">JSON Formatter is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.</p>
+    <h2 id="donateTitle" data-i18n="donate.title">Support fix-json</h2>
+    <p data-i18n="donate.intro">fix-json is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.</p>
     <div class="donate-options">
       <section class="donate-option" id="donatePix" hidden>
         <h3 data-i18n="donate.pixTitle">PIX (Brazil)</h3>

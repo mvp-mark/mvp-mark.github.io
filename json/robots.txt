@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mvp-json.vercel.app/sitemap.xml
+Sitemap: https://fix-json.dev/sitemap.xml

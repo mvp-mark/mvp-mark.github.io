@@ -2,7 +2,7 @@
 // plural forms, so "one" and "other" say the same.
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter オンライン – JSON の整形・検証・修正",
+  "page.title": "fix-json – JSON をオンラインで修正・整形・検証",
   "theme.toLight": "☀️ ライト",
   "theme.toDark": "🌙 ダーク",
   "theme.toLightLabel": "ライトテーマに切り替え",
@@ -213,9 +213,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "JSON をオンラインで整形・検証・修正。無料でブラウザー上で動作します。末尾のカンマ、シングルクォート、クォートのないキー、コメントを修正し、RFC 8259、ECMA-404、JSON5 に対応しています。",
-  "page.shareDescription": "JSON をオンラインで整形・検証・修正。無料でブラウザー上で動作します。",
-  "page.imageAlt": "JSON Formatter – JSON をオンラインで整形・検証・修正",
+  "page.description": "壊れた JSON をワンクリックで修正。余分なカンマ、シングルクォート、クォートのないキー、コメント、閉じ忘れの括弧に対応します。RFC 8259・ECMA-404・JSON5 での整形と検証も、無料でブラウザー上で行えます。",
+  "page.shareDescription": "JSON をオンラインで修正・整形・検証。無料・プライベートで、ブラウザー上で動作します。",
+  "page.imageAlt": "fix-json – JSON をオンラインで修正・整形・検証",
   "seo.feature.indent": "インデントを設定できる整形",
   "seo.feature.specs": "RFC 8259、RFC 4627、ECMA-404、JSON5 での検証",
   "seo.feature.fix": "不正な JSON の自動修正",
@@ -248,8 +248,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 プロジェクトを支援",
-  "donate.title": "JSON Formatter を支援",
-  "donate.intro": "JSON Formatter は無料・広告なしで、ブラウザーの中だけで動きます。お役に立てたなら、金額を問わずご寄付をご検討ください。",
+  "donate.title": "fix-json を支援",
+  "donate.intro": "fix-json は無料・広告なしで、ブラウザーの中だけで動きます。お役に立てたなら、金額を問わずご寄付をご検討ください。",
   "donate.pixTitle": "PIX（ブラジル）",
   "donate.qrAlt": "PIX の QR コード",
   "donate.pixHelp": "銀行アプリで PIX を選び、QR コードを読み取るか「コピー＆ペースト」用コードを使ってください。",

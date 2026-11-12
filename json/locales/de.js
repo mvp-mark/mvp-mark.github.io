@@ -1,7 +1,7 @@
 // Deutsch. Same keys as pt.js (see there and i18n.js).
 export default {
   // Page (index.html)
-  "page.title": "JSON Formatter online – JSON formatieren, validieren und reparieren",
+  "page.title": "fix-json – JSON online reparieren, formatieren und validieren",
   "theme.toLight": "☀️ Hell",
   "theme.toDark": "🌙 Dunkel",
   "theme.toLightLabel": "Zum hellen Design wechseln",
@@ -212,9 +212,9 @@ export default {
 
   // SEO: <head> and structured data of each language page (scripts/build-pages.js),
   // and the hint offering this language on other pages (written in this language)
-  "page.description": "JSON online formatieren, validieren und reparieren – kostenlos und direkt im Browser. Behebt Kommas am Ende, einfache Anführungszeichen, Schlüssel ohne Anführungszeichen und Kommentare, mit Unterstützung für RFC 8259, ECMA-404 und JSON5.",
-  "page.shareDescription": "JSON online formatieren, validieren und reparieren – kostenlos und direkt im Browser.",
-  "page.imageAlt": "JSON Formatter – JSON online formatieren, validieren und reparieren",
+  "page.description": "Kaputtes JSON mit einem Klick reparieren: überzählige Kommas, einfache Anführungszeichen, Schlüssel ohne Anführungszeichen, Kommentare und fehlende Klammern. Formatieren und validieren (RFC 8259, ECMA-404, JSON5) – kostenlos und direkt im Browser.",
+  "page.shareDescription": "JSON online reparieren, formatieren und validieren – kostenlos, privat und direkt im Browser.",
+  "page.imageAlt": "fix-json – JSON online reparieren, formatieren und validieren",
   "seo.feature.indent": "Formatierung mit einstellbarer Einrückung",
   "seo.feature.specs": "Validierung nach RFC 8259, RFC 4627, ECMA-404 und JSON5",
   "seo.feature.fix": "Automatische Reparatur von ungültigem JSON",
@@ -247,8 +247,8 @@ export default {
 
   // "Apoiar" (donations)
   "donate.button": "💛 Projekt unterstützen",
-  "donate.title": "JSON Formatter unterstützen",
-  "donate.intro": "JSON Formatter ist kostenlos, werbefrei und läuft nur in deinem Browser. Wenn er dir geholfen hat, freue ich mich über eine Spende in beliebiger Höhe.",
+  "donate.title": "fix-json unterstützen",
+  "donate.intro": "fix-json ist kostenlos, werbefrei und läuft nur in deinem Browser. Wenn es dir geholfen hat, freue ich mich über eine Spende in beliebiger Höhe.",
   "donate.pixTitle": "PIX (Brasilien)",
   "donate.qrAlt": "PIX-QR-Code",
   "donate.pixHelp": "Öffne deine Banking-App, wähle PIX und scanne den QR-Code oder nutze den Code zum Kopieren und Einfügen.",
