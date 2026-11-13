@@ -1,5 +1,5 @@
 // Set by `npm run sw-version` from a hash of ASSETS; CI fails if it's stale.
-const CACHE_NAME = "json-formatter-bd778d7170";
+const CACHE_NAME = "json-formatter-04429042dd";
 const ASSETS = [
   "./",
   "./index.html",
@@ -63,6 +63,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  // Vercel's analytics script and endpoints: straight to the network, never
+  // cached (offline, the index.html fallback would be served as a script).
+  if (url.pathname.startsWith("/_vercel/")) return;
 
   event.respondWith(
     fetch(event.request, { cache: "no-cache" })
