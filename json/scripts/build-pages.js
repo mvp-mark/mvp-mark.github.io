@@ -20,7 +20,7 @@ const source = readFileSync(join(root, "index.html"), "utf8");
 
 // The site's address, from the source page's canonical link.
 const SITE = /<link rel="canonical" href="([^"]+)">/.exec(source)[1];
-const OG_LOCALE = { pt: "pt_BR", en: "en_US", es: "es_ES", fr: "fr_FR", de: "de_DE", it: "it_IT", ja: "ja_JP", zh: "zh_CN" };
+const OG_LOCALE = { pt: "pt_BR", en: "en_US", es: "es_ES", fr: "fr_FR", de: "de_DE", it: "it_IT", ja: "ja_JP", pl: "pl_PL", zh: "zh_CN" };
 const CODES = Object.keys(LOCALES);
 
 const pathFor = (code) => (code === DEFAULT_LOCALE ? "" : `${code}/`);

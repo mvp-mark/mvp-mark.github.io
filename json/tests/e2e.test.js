@@ -412,7 +412,7 @@ test("todos os idiomas carregam sem chaves faltando", async () => {
   const page = await open();
   await format(page, '{"a": [1, 2}');
   const codes = await page.$$eval("#language option", (options) => options.map((o) => o.value));
-  assert.equal(codes.length, 8);
+  assert.equal(codes.length, 9);
   for (const code of codes) {
     await page.select("#language", code);
     await waitFormatted(page);

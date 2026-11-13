@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pl" data-locale="pl" data-root="../">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fix-json – naprawiaj, formatuj i waliduj JSON online</title>
+<meta name="description" content="Napraw uszkodzony JSON jednym kliknięciem: nadmiarowe przecinki, pojedyncze cudzysłowy, klucze bez cudzysłowów, komentarze i brakujące nawiasy. Formatuj i waliduj (RFC 8259, ECMA-404, JSON5) za darmo, bezpośrednio w przeglądarce.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Marcus Vinícius Peixoto Paulo">
+<meta name="theme-color" content="#0f172a">
+<link rel="canonical" href="https://fix-json.dev/pl/">
+<!-- i18n:alternates (scripts/build-pages.js) -->
+<link rel="alternate" hreflang="pt-BR" href="https://fix-json.dev/">
+<link rel="alternate" hreflang="en" href="https://fix-json.dev/en/">
+<link rel="alternate" hreflang="es" href="https://fix-json.dev/es/">
+<link rel="alternate" hreflang="fr" href="https://fix-json.dev/fr/">
+<link rel="alternate" hreflang="de" href="https://fix-json.dev/de/">
+<link rel="alternate" hreflang="it" href="https://fix-json.dev/it/">
+<link rel="alternate" hreflang="ja" href="https://fix-json.dev/ja/">
+<link rel="alternate" hreflang="pl" href="https://fix-json.dev/pl/">
+<link rel="alternate" hreflang="zh-CN" href="https://fix-json.dev/zh/">
+<link rel="alternate" hreflang="x-default" href="https://fix-json.dev/">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="de_DE">
+<meta property="og:locale:alternate" content="it_IT">
+<meta property="og:locale:alternate" content="ja_JP">
+<meta property="og:locale:alternate" content="zh_CN">
+<!-- /i18n:alternates -->
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:site_name" content="fix-json">
+<meta property="og:title" content="fix-json – naprawiaj, formatuj i waliduj JSON online">
+<meta property="og:description" content="Naprawiaj, formatuj i waliduj JSON online. Za darmo, prywatnie i bezpośrednio w przeglądarce.">
+<meta property="og:url" content="https://fix-json.dev/pl/">
+<meta property="og:image" content="https://fix-json.dev/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="fix-json – naprawiaj, formatuj i waliduj JSON online">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="fix-json – naprawiaj, formatuj i waliduj JSON online">
+<meta name="twitter:description" content="Naprawiaj, formatuj i waliduj JSON online. Za darmo, prywatnie i bezpośrednio w przeglądarce.">
+<meta name="twitter:image" content="https://fix-json.dev/og-image.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "fix-json",
+  "url": "https://fix-json.dev/pl/",
+  "description": "Naprawiaj, formatuj i waliduj JSON online. Za darmo, prywatnie i bezpośrednio w przeglądarce.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "pl",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "BRL"
+  },
+  "featureList": [
+    "Formatowanie z konfigurowalnymi wcięciami",
+    "Walidacja RFC 8259, RFC 4627, ECMA-404 i JSON5",
+    "Automatyczna naprawa niepoprawnego JSON-a",
+    "Podświetlanie składni i kolorowe nawiasy",
+    "Wyszukiwanie po kluczu lub wartości, ze ścieżką (JSONPath) każdego trafienia",
+    "Porównywanie dwóch dokumentów JSON",
+    "Konwersja do YAML i CSV",
+    "Linki do udostępniania bez serwera",
+    "Działa offline"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "Marcus Vinícius Peixoto Paulo"
+  }
+}
+</script>
+
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="../style.css">
+<script>
+  // Vercel Web Analytics (no cookies) and Speed Insights, on the production
+  // domain only (the scripts don't exist elsewhere). The #fragment is dropped
+  // before sending: share links carry the JSON there, and it must never leave
+  // the browser.
+  if (location.hostname === "fix-json.dev") {
+    const withoutHash = (event) => {
+      if (!event.url) return event;
+      const url = new URL(event.url);
+      url.hash = "";
+      return { ...event, url: url.href };
+    };
+    for (const [fn, queue, src] of [
+      ["va", "vaq", "/_vercel/insights/script.js"],
+      ["si", "siq", "/_vercel/speed-insights/script.js"],
+    ]) {
+      window[fn] = window[fn] || function () { (window[queue] = window[queue] || []).push(arguments); };
+      window[fn]("beforeSend", withoutHash);
+      const script = document.createElement("script");
+      script.defer = true;
+      script.src = src;
+      document.head.appendChild(script);
+    }
+  }
+</script>
+</head>
+<body data-theme="dark" data-syntax="default" data-rainbow="on">
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="brand">fix-json</h1>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Przełącz na jasny motyw" data-i18n="theme.toLight" data-i18n-attr="aria-label=theme.toLightLabel">☀️ Jasny</button>
+      <p class="lang-hint" id="langHint" hidden><a id="langHintLink" href="#"></a><button type="button" id="langHintClose" aria-label="Zamknij" data-i18n-attr="aria-label=common.close">×</button></p>
+
+      <div class="field">
+        <label for="language" data-i18n="settings.language">Język</label>
+        <select id="language">
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="it">Italiano</option>
+          <option value="ja">日本語</option>
+          <option value="pl" selected>Polski</option>
+          <option value="zh">简体中文</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="template" data-i18n="settings.template">Wcięcia</label>
+        <select id="template">
+          <option value="compact" data-i18n="template.compact">Zwarty (bez białych znaków)</option>
+          <option value="1" data-i18n="template.1">1 spacja</option>
+          <option value="2" data-i18n="template.2">2 spacje</option>
+          <option value="3" selected data-i18n="template.3">3 spacje</option>
+          <option value="4" data-i18n="template.4">4 spacje</option>
+          <option value="tab" data-i18n="template.tab">Tabulator</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="spec" data-i18n="settings.spec">Specyfikacja JSON</label>
+        <select id="spec">
+          <option value="rfc8259" selected>RFC 8259</option>
+          <option value="rfc4627">RFC 4627</option>
+          <option value="ecma404">ECMA-404</option>
+          <option value="json5">JSON5</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="syntaxTheme" data-i18n="settings.colors">Kolory JSON</label>
+        <select id="syntaxTheme">
+          <option value="default" selected data-i18n="colors.default">Domyślne (VS Code)</option>
+          <option value="github">GitHub</option>
+          <option value="monokai">Monokai</option>
+          <option value="dracula">Dracula</option>
+          <option value="solarized">Solarized</option>
+          <option value="none" data-i18n="colors.none">Bez kolorów</option>
+        </select>
+        <div class="syntax-preview" aria-hidden="true"><span class="jv-bracket jv-depth-0">{</span><span class="jv-key">"nome"</span>: <span class="jv-str">"Ana"</span>, <span class="jv-key">"idade"</span>: <span class="jv-num">31</span>, <span class="jv-key">"ativo"</span>: <span class="jv-bool">true</span>, <span class="jv-key">"tags"</span>: <span class="jv-bracket jv-depth-1">[</span><span class="jv-null">null</span><span class="jv-bracket jv-depth-1">]</span><span class="jv-bracket jv-depth-0">}</span></div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rainbowBrackets" checked>
+          <span data-i18n="settings.rainbow">Kolorowe nawiasy</span>
+        </label>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="fixJson" checked>
+          <span data-i18n="settings.fix">Automatyczna naprawa</span>
+        </label>
+        <button class="help-btn" id="fixHelpBtn" title="Co robi „Automatyczna naprawa”?" aria-label="Pomoc: „Automatyczna naprawa”" data-i18n-attr="title=settings.fixHelpTitle;aria-label=settings.fixHelpLabel">?</button>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="sortKeys">
+          <span data-i18n="settings.sort">Sortuj klucze</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="icon-btn" id="openFileBtn" title="Otwórz plik" data-i18n-attr="title=actions.open">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4H2v16h20V6H12z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="clearBtn" title="Wyczyść" data-i18n-attr="title=actions.clear">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button class="icon-btn" id="shareBtn" title="Skopiuj link z tym JSON-em (dane są w samym linku, bez serwera)" data-i18n-attr="title=actions.share">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+      </div>
+
+      <button class="format-btn" id="formatBtn" title="Formatuj (Ctrl+Enter / ⌘+Enter)" data-i18n="format.button" data-i18n-attr="title=format.title">Formatuj</button>
+
+      <div class="status" id="statusBox" hidden></div>
+
+      <div class="history">
+        <div class="history-header">
+          <span data-i18n="history.title">Historia</span>
+          <button class="history-clear-btn" id="historyClearBtn" title="Wyczyść historię" data-i18n="history.clear" data-i18n-attr="title=history.clearTitle">Wyczyść</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+
+      <button class="donate-btn" id="donateBtn" type="button" hidden data-i18n="donate.button">💛 Wesprzyj projekt</button>
+    </aside>
+
+    <main class="editor">
+      <div class="panes">
+        <section class="pane">
+          <header>
+            <span data-i18n="input.title">Dane wejściowe</span>
+          </header>
+          <div class="input-wrap" id="inputWrap">
+            <div class="large-input" id="largeInput" hidden>
+              <p class="large-input-title" data-i18n="large.title">Duże dane wejściowe</p>
+              <p id="largeInputInfo"></p>
+              <button class="copy-btn" id="largeShowBtn" type="button" data-i18n="large.show">Mimo to pokaż tekst</button>
+            </div>
+            <pre class="input-highlight" id="inputHighlight" aria-hidden="true"></pre>
+            <textarea id="input" placeholder="Wklej, wpisz lub upuść tu plik JSON..." spellcheck="false" data-i18n-attr="placeholder=input.placeholder"></textarea>
+          </div>
+          <div class="selection-bar" id="inputSelection" role="status" data-i18n="selection.hint">Zaznacz fragment, aby zobaczyć szczegóły</div>
+        </section>
+        <section class="pane">
+          <header>
+            <span data-i18n="output.title">Wynik</span>
+            <div class="pane-actions">
+              <button class="copy-btn" id="expandAllBtn" title="Rozwiń wszystkie bloki" data-i18n="output.expand" data-i18n-attr="title=output.expandTitle">Rozwiń</button>
+              <button class="copy-btn" id="collapseAllBtn" title="Zwiń wszystkie bloki" data-i18n="output.collapse" data-i18n-attr="title=output.collapseTitle">Zwiń</button>
+              <button class="copy-btn" id="copyBtn" title="Kopiuj wynik" data-i18n="output.copy" data-i18n-attr="title=output.copyTitle">Kopiuj</button>
+              <button class="copy-btn" id="downloadBtn" title="Pobierz wynik jako plik" data-i18n="output.download" data-i18n-attr="title=output.downloadTitle">Pobierz</button>
+            </div>
+          </header>
+          <div class="output-tools">
+            <input type="search" id="searchInput" placeholder="Szukaj kluczy lub wartości…" aria-label="Szukaj kluczy lub wartości w wyniku" spellcheck="false" autocomplete="off" data-i18n-attr="placeholder=search.placeholder;aria-label=search.label">
+            <span class="search-count" id="searchCount" aria-live="polite"></span>
+            <button class="copy-btn" id="searchPrevBtn" title="Poprzednie trafienie (Shift+Enter)" aria-label="Poprzednie trafienie" data-i18n-attr="title=search.prevTitle;aria-label=search.prev">↑</button>
+            <button class="copy-btn" id="searchNextBtn" title="Następne trafienie (Enter)" aria-label="Następne trafienie" data-i18n-attr="title=search.nextTitle;aria-label=search.next">↓</button>
+            <select id="outputFormat" title="Format wyniku (używany przez Kopiuj i Pobierz)" aria-label="Format wyniku" data-i18n-attr="title=output.formatTitle;aria-label=output.format">
+              <option value="json" selected>JSON</option>
+              <option value="yaml">YAML</option>
+              <option value="csv">CSV</option>
+            </select>
+            <button class="copy-btn" id="diffBtn" title="Porównaj wynik z innym JSON-em" data-i18n="diff.button" data-i18n-attr="title=diff.buttonTitle">Porównaj</button>
+          </div>
+          <div class="path-bar" id="pathBar" hidden>
+            <span class="path-label" data-i18n="path.label">Ścieżka</span>
+            <code class="path-text" id="pathText"></code>
+            <button class="copy-btn" id="copyPathBtn" title="Kopiuj ścieżkę" data-i18n="path.copy" data-i18n-attr="title=path.copyTitle">Kopiuj</button>
+          </div>
+          <div class="output-note" id="outputNote" role="status" hidden></div>
+          <div class="json-view" id="output" data-placeholder="Tu pojawi się sformatowany JSON..." role="region" aria-label="Sformatowany wynik (strzałki przechodzą między wierszami)" tabindex="0" data-i18n-attr="data-placeholder=output.placeholder;aria-label=output.label"></div>
+          <div class="selection-bar" id="outputSelection" role="status" data-i18n="selection.hint">Zaznacz fragment, aby zobaczyć szczegóły</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="diff-dialog" id="diffDialog" aria-labelledby="diffTitle">
+    <h2 id="diffTitle" data-i18n="diff.title">Porównaj z innym JSON-em</h2>
+    <p data-i18n="diff.intro">Wklej JSON do porównania z bieżącym wynikiem (obiekty według kluczy, listy według pozycji).</p>
+    <textarea id="diffInput" spellcheck="false" placeholder="Wklej tu drugi JSON..." data-i18n-attr="placeholder=diff.placeholder"></textarea>
+    <div class="diff-actions">
+      <button class="copy-btn diff-run" id="diffRunBtn" type="button" title="Porównaj (Ctrl+Enter)" data-i18n="diff.run" data-i18n-attr="title=diff.runTitle">Porównaj</button>
+      <button class="copy-btn" id="diffCloseBtn" type="button" data-i18n="common.close">Zamknij</button>
+    </div>
+    <p class="diff-summary" id="diffSummary" aria-live="polite"></p>
+    <ul class="diff-list" id="diffList"></ul>
+  </dialog>
+
+  <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
+    <h2 id="donateTitle" data-i18n="donate.title">Wesprzyj fix-json</h2>
+    <p data-i18n="donate.intro">fix-json jest darmowy, bez reklam i działa wyłącznie w Twojej przeglądarce. Jeśli Ci pomógł, rozważ darowiznę w dowolnej kwocie.</p>
+    <div class="donate-options">
+      <section class="donate-option" id="donatePix" hidden>
+        <h3 data-i18n="donate.pixTitle">PIX (Brazylia)</h3>
+        <img class="donate-qr" id="donateQr" width="180" height="180" alt="Kod QR PIX" data-i18n-attr="alt=donate.qrAlt">
+        <p data-i18n="donate.pixHelp">Otwórz aplikację banku, wybierz PIX i zeskanuj kod QR albo użyj kodu do skopiowania.</p>
+        <button class="copy-btn" id="donateCopyPix" type="button" data-i18n="donate.copyPix">Kopiuj kod PIX (kopiuj i wklej)</button>
+        <p class="donate-key"><span data-i18n="donate.pixKey">Klucz PIX</span>: <code id="donatePixKey"></code></p>
+      </section>
+      <section class="donate-option" id="donateLinkBox" hidden>
+        <h3 data-i18n="donate.linkTitle">Karta lub PayPal</h3>
+        <a class="donate-link" id="donateLink" target="_blank" rel="noopener"></a>
+      </section>
+    </div>
+    <button class="copy-btn" id="donateClose" type="button" data-i18n="common.close">Zamknij</button>
+  </dialog>
+
+  <div class="popover" id="fixHelpPopover" hidden>
+    <p data-i18n-html="fixHelp.introHtml"><strong>Automatyczna naprawa</strong> próbuje przed formatowaniem poprawić typowe problemy:</p>
+    <ul>
+      <li data-i18n-html="fixHelp.trailingCommasHtml">Nadmiarowe przecinki na końcu</li>
+      <li data-i18n-html="fixHelp.missingCommasHtml">Brakujące przecinki między elementami (<code>{"a": 1 "b": 2}</code>)</li>
+      <li data-i18n-html="fixHelp.singleQuotesHtml">Pojedyncze cudzysłowy zamiast podwójnych</li>
+      <li data-i18n-html="fixHelp.unquotedKeysHtml">Klucze bez cudzysłowów</li>
+      <li data-i18n-html="fixHelp.commentsHtml">Komentarze <code>//</code> i <code>/* */</code></li>
+      <li data-i18n-html="fixHelp.pythonHtml"><code>True</code>/<code>False</code>/<code>None</code> (styl Pythona)</li>
+      <li data-i18n-html="fixHelp.stringifiedHtml">Cały JSON w cudzysłowach (<code>"{...}"</code>) lub zserializowany dwukrotnie</li>
+      <li data-i18n-html="fixHelp.nestedHtml">Zserializowany JSON w polu (<code>"payload": "{\"a\":1}"</code>) staje się obiektem</li>
+      <li data-i18n-html="fixHelp.fragmentHtml">Fragment skopiowany ze środka treści (<code>"klucz": wartość</code> bez <code>{ }</code> albo ucięty wewnątrz stringa)</li>
+      <li data-i18n-html="fixHelp.emptyValuesHtml">Puste wartości (<code>{text:,...}</code> staje się <code>""</code>)</li>
+      <li data-i18n-html="fixHelp.concatenatedHtml">Kilka luźnych obiektów (<code>{...} {...}</code>) staje się tablicą (<code>[{...}, {...}]</code>)</li>
+    </ul>
+    <button id="fixHelpClose" data-i18n="common.close">Zamknij</button>
+  </div>
+
+  <script type="module" src="../app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      // Resolved now: by "load" app.js may have changed the address to the
+      // chosen language's page.
+      const swUrl = new URL("../sw.js", location.href);
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register(swUrl).catch(() => {
+          // Offline cache registration is optional; app still works without it.
+        });
+      });
+    }
+  </script>
+</body>
+</html>

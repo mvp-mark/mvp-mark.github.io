@@ -5,8 +5,10 @@
 // job). To add a language, add a dictionary with the same keys as
 // locales/pt.js and list it in LOCALES (tests check the keys match).
 //
-// A value is a string, where {name} is replaced by params.name, or
-// { one, other } picked by params.count === 1.
+// A value is a string, where {name} is replaced by params.name, or a plural
+// { one, other }: one when params.count === 1, other otherwise. Languages
+// with more forms (Polish) add the other categories of Intl.PluralRules
+// ("few", "many"), used when the count falls in them.
 
 import de from "./locales/de.js";
 import en from "./locales/en.js";
@@ -14,6 +16,7 @@ import es from "./locales/es.js";
 import fr from "./locales/fr.js";
 import it from "./locales/it.js";
 import ja from "./locales/ja.js";
+import pl from "./locales/pl.js";
 import pt from "./locales/pt.js";
 import zh from "./locales/zh.js";
 
@@ -26,6 +29,7 @@ export const LOCALES = {
   de: { name: "Deutsch", tag: "de", messages: de },
   it: { name: "Italiano", tag: "it", messages: it },
   ja: { name: "日本語", tag: "ja", messages: ja },
+  pl: { name: "Polski", tag: "pl", messages: pl },
   // Simplified Chinese, also offered to zh-TW/zh-HK browsers for now.
   zh: { name: "简体中文", tag: "zh-CN", messages: zh },
 };
@@ -54,11 +58,24 @@ export function matchLocale(languages) {
   return null;
 }
 
+const pluralRules = {};
+
+// The form of a plural message for count (see the top of this file).
+function pluralForm(message, tag, count) {
+  if (count === 1) return message.one;
+  if (!pluralRules[tag]) pluralRules[tag] = new Intl.PluralRules(tag);
+  const category = pluralRules[tag].select(count);
+  // "one" covers more than 1 in some languages (0 in Portuguese and French);
+  // those keep the form they had before.
+  return (category !== "one" && message[category]) || message.other;
+}
+
 // A message in a given locale (the page's other texts stay as they are).
 export function tIn(code, key, params = {}) {
-  let message = (LOCALES[code] ?? LOCALES[DEFAULT_LOCALE]).messages[key] ?? pt[key];
+  const locale = LOCALES[code] ?? LOCALES[DEFAULT_LOCALE];
+  let message = locale.messages[key] ?? pt[key];
   if (message === undefined) return key;
-  if (typeof message === "object") message = params.count === 1 ? message.one : message.other;
+  if (typeof message === "object") message = pluralForm(message, locale.tag, params.count);
   return message.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match));
 }
 
