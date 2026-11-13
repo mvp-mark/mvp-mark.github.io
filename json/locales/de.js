@@ -98,7 +98,7 @@ export default {
   "status.valid": "Gültiges JSON.",
   "status.fixNote": "Automatische Korrekturen angewendet (JSON reparieren): Schlüssel/Werte ohne Anführungszeichen, Kommentare, überzählige oder fehlende Kommas usw.",
   "status.joined": "{count} einzelne Objekte wurden zu einem Array zusammengefasst.",
-  "status.expanded": { one: "1 String mit serialisiertem JSON wurde in ein Objekt/Array umgewandelt (Fix JSON abwählen, um ihn als Text zu behalten).", other: "{count} Strings mit serialisiertem JSON wurden in Objekte/Arrays umgewandelt (Fix JSON abwählen, um sie als Text zu behalten)." },
+  "status.expanded": { one: "1 String mit serialisiertem JSON wurde in ein Objekt/Array umgewandelt („JSON reparieren“ abwählen, um ihn als Text zu behalten).", other: "{count} Strings mit serialisiertem JSON wurden in Objekte/Arrays umgewandelt („JSON reparieren“ abwählen, um sie als Text zu behalten)." },
   "status.fragmentWrapped": "Dem Ausschnitt \"Schlüssel\": Wert fehlten die { } drumherum; er wurde als Objekt gelesen.",
   "status.quoteClosed": "Dem am Textende offenen String fehlte das schließende Anführungszeichen; es wurde ergänzt.",
   "status.fileError": "Die Datei {name} konnte nicht gelesen werden.",

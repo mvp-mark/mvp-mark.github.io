@@ -8,7 +8,7 @@ import { readFile } from "fs/promises";
 import http from "http";
 import { dirname, extname, join, sep } from "path";
 import puppeteer from "puppeteer-core";
-// import { pixPayload } from "../pix.js"; // "Apoiar": disabled for now
+import { pixPayload } from "../pix.js";
 import { fileURLToPath } from "url";
 import { run, test } from "./harness.js";
 
@@ -464,38 +464,37 @@ test("barra de seleção: contagens, tipo do JSON e caminho", async () => {
   await page.done();
 });
 
-// "Apoiar" is disabled for now (see app.js).
-// test("Apoiar: escondido sem configuração; com ela, PIX e link", async () => {
-//   const plain = await open();
-//   assert.equal(await plain.$eval("#donateBtn", (el) => el.hidden), true);
-//   await plain.done();
-//
-//   const pix = { key: "fulano@example.com", name: "Fulano de Tal", city: "Sao Paulo" };
-//   const serve = {
-//     "/donate.js": ["text/javascript", `export default ${JSON.stringify({ pix, link: { url: "https://ko-fi.com/exemplo", label: "Ko-fi" } })};`],
-//     "/pix-qr.svg": ["image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>'],
-//   };
-//   const page = await open(ORIGIN + "/", { serve });
-//   await page.click("#donateBtn");
-//   assert.equal(await page.$eval("#donateDialog", (el) => el.open), true);
-//   assert.equal(await page.$eval("#donatePixKey", (el) => el.textContent), "fulano@example.com");
-//   assert.ok(await page.$eval("#donateQr", (el) => el.complete && el.naturalWidth > 0));
-//   assert.equal(await page.$eval("#donateLink", (el) => el.textContent), "Doar pelo Ko-fi ↗");
-//   await page.click("#donateCopyPix");
-//   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), pixPayload(pix));
-//   // PIX first in Portuguese.
-//   assert.ok(await page.evaluate(() => document.getElementById("donatePix").getBoundingClientRect().top <
-//     document.getElementById("donateLinkBox").getBoundingClientRect().top));
-//   await page.click("#donateClose");
-//   await page.done();
-//
-//   const en = await open(ORIGIN + "/en/", { serve });
-//   await en.click("#donateBtn");
-//   assert.equal(await en.$eval("#donateLink", (el) => el.textContent), "Donate via Ko-fi ↗");
-//   assert.ok(await en.evaluate(() => document.getElementById("donateLinkBox").getBoundingClientRect().top <
-//     document.getElementById("donatePix").getBoundingClientRect().top));
-//   await en.done();
-// });
+test("Apoiar: escondido sem configuração; com ela, PIX e link", async () => {
+  const plain = await open();
+  assert.equal(await plain.$eval("#donateBtn", (el) => el.hidden), true);
+  await plain.done();
+
+  const pix = { key: "fulano@example.com", name: "Fulano de Tal", city: "Sao Paulo" };
+  const serve = {
+    "/donate.js": ["text/javascript", `export default ${JSON.stringify({ pix, link: { url: "https://ko-fi.com/exemplo", label: "Ko-fi" } })};`],
+    "/pix-qr.svg": ["image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>'],
+  };
+  const page = await open(ORIGIN + "/", { serve });
+  await page.click("#donateBtn");
+  assert.equal(await page.$eval("#donateDialog", (el) => el.open), true);
+  assert.equal(await page.$eval("#donatePixKey", (el) => el.textContent), "fulano@example.com");
+  assert.ok(await page.$eval("#donateQr", (el) => el.complete && el.naturalWidth > 0));
+  assert.equal(await page.$eval("#donateLink", (el) => el.textContent), "Doar pelo Ko-fi ↗");
+  await page.click("#donateCopyPix");
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), pixPayload(pix));
+  // PIX first in Portuguese.
+  assert.ok(await page.evaluate(() => document.getElementById("donatePix").getBoundingClientRect().top <
+    document.getElementById("donateLinkBox").getBoundingClientRect().top));
+  await page.click("#donateClose");
+  await page.done();
+
+  const en = await open(ORIGIN + "/en/", { serve });
+  await en.click("#donateBtn");
+  assert.equal(await en.$eval("#donateLink", (el) => el.textContent), "Donate via Ko-fi ↗");
+  assert.ok(await en.evaluate(() => document.getElementById("donateLinkBox").getBoundingClientRect().top <
+    document.getElementById("donatePix").getBoundingClientRect().top));
+  await en.done();
+});
 
 await run();
 await browser.close();

@@ -937,7 +937,7 @@ function wrapNestedKeys(text, lenient, allowOpenerOnly) {
 }
 
 // `"{...}"` whose inner quotes aren't escaped isn't a valid string; with
-// Fix JSON the text inside the outer quotes is read instead.
+// Auto-fix the text inside the outer quotes is read instead.
 export function brokenWrapperInner(raw) {
   const start = raw.search(/\S/);
   const text = raw.trim();

@@ -173,9 +173,9 @@
       <div class="field checkbox-field">
         <label class="checkbox-label">
           <input type="checkbox" id="fixJson" checked>
-          <span data-i18n="settings.fix">Fix JSON</span>
+          <span data-i18n="settings.fix">Auto-fix</span>
         </label>
-        <button class="help-btn" id="fixHelpBtn" title="What is Fix JSON?" aria-label="Help about Fix JSON" data-i18n-attr="title=settings.fixHelpTitle;aria-label=settings.fixHelpLabel">?</button>
+        <button class="help-btn" id="fixHelpBtn" title="What is Auto-fix?" aria-label="Help about Auto-fix" data-i18n-attr="title=settings.fixHelpTitle;aria-label=settings.fixHelpLabel">?</button>
       </div>
 
       <div class="field checkbox-field">
@@ -210,9 +210,7 @@
         <ul class="history-list" id="historyList"></ul>
       </div>
 
-      <!-- "Apoiar" (doações): desativado por enquanto (ver app.js).
       <button class="donate-btn" id="donateBtn" type="button" hidden data-i18n="donate.button">💛 Support the project</button>
-      -->
     </aside>
 
     <main class="editor">
@@ -279,7 +277,6 @@
     <ul class="diff-list" id="diffList"></ul>
   </dialog>
 
-  <!-- "Apoiar" (doações): desativado por enquanto (ver app.js).
   <dialog class="donate-dialog" id="donateDialog" aria-labelledby="donateTitle">
     <h2 id="donateTitle" data-i18n="donate.title">Support fix-json</h2>
     <p data-i18n="donate.intro">fix-json is free, ad-free and runs only in your browser. If it helped you, please consider a donation of any amount.</p>
@@ -298,10 +295,9 @@
     </div>
     <button class="copy-btn" id="donateClose" type="button" data-i18n="common.close">Close</button>
   </dialog>
-  -->
 
   <div class="popover" id="fixHelpPopover" hidden>
-    <p data-i18n-html="fixHelp.introHtml"><strong>Fix JSON</strong> tries to fix common problems automatically before formatting:</p>
+    <p data-i18n-html="fixHelp.introHtml"><strong>Auto-fix</strong> tries to fix common problems before formatting:</p>
     <ul>
       <li data-i18n-html="fixHelp.trailingCommasHtml">Trailing commas</li>
       <li data-i18n-html="fixHelp.missingCommasHtml">Missing commas between items (<code>{"a": 1 "b": 2}</code>)</li>

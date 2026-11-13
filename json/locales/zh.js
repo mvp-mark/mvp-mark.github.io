@@ -99,7 +99,7 @@ export default {
   "status.valid": "JSON 有效。",
   "status.fixNote": "已应用自动修复（自动修复 JSON）：无引号的键/值、注释、多余或缺少的逗号等。",
   "status.joined": "已将 {count} 个独立对象合并为一个数组。",
-  "status.expanded": { one: "1 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选 Fix JSON 可保留为文本）。", other: "{count} 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选 Fix JSON 可保留为文本）。" },
+  "status.expanded": { one: "1 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选“自动修复 JSON” 可保留为文本）。", other: "{count} 个含序列化 JSON 的字符串已展开为对象/数组（取消勾选“自动修复 JSON” 可保留为文本）。" },
   "status.fragmentWrapped": "\"键\": 值 片段外面没有 { }，已按对象读取。",
   "status.quoteClosed": "文本末尾未闭合的字符串缺少结束引号，已补上。",
   "status.fileError": "无法读取文件 {name}。",

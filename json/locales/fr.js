@@ -98,7 +98,7 @@ export default {
   "status.valid": "JSON valide.",
   "status.fixNote": "Corrections automatiques appliquées (Corriger le JSON) : clés/valeurs sans guillemets, commentaires, virgules en trop ou manquantes, etc.",
   "status.joined": "{count} objets séparés ont été regroupés dans un tableau.",
-  "status.expanded": { one: "1 chaîne contenant du JSON sérialisé a été développée en objet/tableau (décochez Fix JSON pour la garder en texte).", other: "{count} chaînes contenant du JSON sérialisé ont été développées en objets/tableaux (décochez Fix JSON pour les garder en texte)." },
+  "status.expanded": { one: "1 chaîne contenant du JSON sérialisé a été développée en objet/tableau (décochez « Corriger le JSON » pour la garder en texte).", other: "{count} chaînes contenant du JSON sérialisé ont été développées en objets/tableaux (décochez « Corriger le JSON » pour les garder en texte)." },
   "status.fragmentWrapped": "L'extrait \"clé\": valeur n'avait pas de { } autour ; il a été lu comme un objet.",
   "status.quoteClosed": "La chaîne ouverte à la fin du texte n'avait pas de guillemet fermant ; il a été ajouté.",
   "status.fileError": "Impossible de lire le fichier {name}.",

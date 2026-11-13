@@ -18,7 +18,7 @@ test("analyze returns the value of valid JSON", () => {
   assert.deepEqual(ok, { value: { a: [1, 2] }, usedFix: false, joined: false, repaired: null, completed: null, expanded: null });
 });
 
-test("analyze expands serialized JSON inside the body only with Fix JSON", () => {
+test("analyze expands serialized JSON inside the body only with Auto-fix", () => {
   const raw = '{"id": 1, "payload": "{\\"valor\\":\\"200\\",\\"tag\\":[]}"}';
   const { ok } = analyze(raw, options());
   assert.deepEqual(ok.value, { id: 1, payload: { valor: "200", tag: [] } });
@@ -44,7 +44,7 @@ test("analyze expands serialized JSON in output with closers added", () => {
   assert.ok(fail.closed.marks.get('["a"]').expanded);
 });
 
-test("analyze applies Fix JSON and reports missing commas", () => {
+test("analyze applies Auto-fix and reports missing commas", () => {
   assert.deepEqual(analyze("{a: 'x', // c\n}", options()).ok.value, { a: "x" });
   const { ok } = analyze('{"a": 1 "b": 2}', options());
   assert.equal(ok.repaired.fixed, '{"a": 1, "b": 2}');

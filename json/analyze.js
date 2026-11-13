@@ -33,7 +33,7 @@ function reformatForEditing(raw, source, offset, indent) {
   return next === raw ? null : next;
 }
 
-// options: { spec, fix (Fix JSON on), indent (used to re-indent the input),
+// options: { spec, fix (Auto-fix on), indent (used to re-indent the input),
 // reformatted (the input was just re-indented: don't do it again) }.
 // Returns { warnings, ok } when there's a value to show, where
 //   ok: { value, usedFix, joined, repaired, completed, expanded }; repaired
@@ -41,7 +41,7 @@ function reformatForEditing(raw, source, offset, indent) {
 //   applies to and its `offset` in the input (-1 if it isn't there
 //   verbatim); completed (or null) is completeFragment's fix of the input;
 //   expanded (or null) the marks of the strings with serialized JSON that
-//   were expanded (expandSerialized, with Fix JSON on);
+//   were expanded (expandSerialized, with Auto-fix on);
 // or { warnings, fail } when there isn't, where
 //   fail: { source, info, offset, closed, reformat, repair }: info is
 //   { pos, message } about `source`; closed is autoCloseBrackets' fix (shown
@@ -96,7 +96,7 @@ export function analyze(raw, { spec, fix: shouldFix, indent, reformatted }) {
         const completed = source === raw ? completeFragment(raw) : null;
         if (completed) {
           const result = read(completed.text, -1);
-          // Its own notes say what was completed; the general Fix JSON note
+          // Its own notes say what was completed; the general Auto-fix note
           // only when the completed text still needed more than that.
           let lenient = false;
           try {

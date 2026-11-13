@@ -1,6 +1,6 @@
 import { analyze, unpack } from "./analyze.js";
 import { toCsv, toYaml } from "./convert.js";
-// import donate from "./donate.js"; // "Apoiar": disabled for now (see below)
+import donate from "./donate.js";
 import { openHistory } from "./history-store.js";
 import { DEFAULT_LOCALE, LOCALES, getLocale, localeTag, matchLocale, setLocale, t, tIn } from "./i18n.js";
 import {
@@ -11,7 +11,7 @@ import {
   scanTokens,
   stringify,
 } from "./parser.js";
-// import { pixPayload } from "./pix.js"; // "Apoiar": disabled for now (see below)
+import { pixPayload } from "./pix.js";
 import { describeSelection } from "./selection.js";
 import { SHARE_PREFIX, decodeShare, encodeShare } from "./share.js";
 import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
@@ -68,15 +68,15 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
   const langHint = document.getElementById("langHint");
   const langHintLink = document.getElementById("langHintLink");
   const langHintClose = document.getElementById("langHintClose");
-  // const donateBtn = document.getElementById("donateBtn");
-  // const donateDialog = document.getElementById("donateDialog");
-  // const donatePix = document.getElementById("donatePix");
-  // const donateQr = document.getElementById("donateQr");
-  // const donateCopyPix = document.getElementById("donateCopyPix");
-  // const donatePixKey = document.getElementById("donatePixKey");
-  // const donateLinkBox = document.getElementById("donateLinkBox");
-  // const donateLink = document.getElementById("donateLink");
-  // const donateClose = document.getElementById("donateClose");
+  const donateBtn = document.getElementById("donateBtn");
+  const donateDialog = document.getElementById("donateDialog");
+  const donatePix = document.getElementById("donatePix");
+  const donateQr = document.getElementById("donateQr");
+  const donateCopyPix = document.getElementById("donateCopyPix");
+  const donatePixKey = document.getElementById("donatePixKey");
+  const donateLinkBox = document.getElementById("donateLinkBox");
+  const donateLink = document.getElementById("donateLink");
+  const donateClose = document.getElementById("donateClose");
 
   const HISTORY_LIMIT = 30;
   const THEME_KEY = "jsonFormatter.theme";
@@ -1847,33 +1847,29 @@ import { diffValues, formatPath, searchValue, sortKeys } from "./tree.js";
 
   updateLanguageHint();
 
-  // "Apoiar" (donations) is disabled for now: to bring it back, uncomment
-  // this, the donate/pix imports and elements above, the button and dialog
-  // in index.html and its test in tests/e2e.test.js, and list donate.js and
-  // pix.js in sw.js's ASSETS again.
-  // // "Apoiar": shown only once donate.js has a PIX key or a link. PIX (only
-  // // for Brazil) comes first on the Portuguese page, the link elsewhere.
-  // const hasPix = donate.pix.key.trim() !== "";
-  // const hasDonateLink = donate.link.url.trim() !== "";
-  // donateBtn.hidden = !hasPix && !hasDonateLink;
-  //
-  // donateBtn.addEventListener("click", () => {
-  //   donatePix.hidden = !hasPix;
-  //   donateLinkBox.hidden = !hasDonateLink;
-  //   if (hasPix) {
-  //     // Loaded only now: most visitors never open this.
-  //     if (!donateQr.getAttribute("src")) donateQr.src = new URL("pix-qr.svg", siteRoot).href;
-  //     donatePixKey.textContent = donate.pix.key;
-  //   }
-  //   if (hasDonateLink) {
-  //     donateLink.href = donate.link.url;
-  //     donateLink.textContent = t("donate.linkButton", { platform: donate.link.label || new URL(donate.link.url).hostname });
-  //   }
-  //   donateDialog.classList.toggle("link-first", getLocale() !== DEFAULT_LOCALE);
-  //   donateDialog.showModal();
-  // });
-  // donateCopyPix.addEventListener("click", () => copyText(pixPayload(donate.pix), donateCopyPix));
-  // donateClose.addEventListener("click", () => donateDialog.close());
+  // "Apoiar": shown only once donate.js has a PIX key or a link. PIX (only
+  // for Brazil) comes first on the Portuguese page, the link elsewhere.
+  const hasPix = donate.pix.key.trim() !== "";
+  const hasDonateLink = donate.link.url.trim() !== "";
+  donateBtn.hidden = !hasPix && !hasDonateLink;
+
+  donateBtn.addEventListener("click", () => {
+    donatePix.hidden = !hasPix;
+    donateLinkBox.hidden = !hasDonateLink;
+    if (hasPix) {
+      // Loaded only now: most visitors never open this.
+      if (!donateQr.getAttribute("src")) donateQr.src = new URL("pix-qr.svg", siteRoot).href;
+      donatePixKey.textContent = donate.pix.key;
+    }
+    if (hasDonateLink) {
+      donateLink.href = donate.link.url;
+      donateLink.textContent = t("donate.linkButton", { platform: donate.link.label || new URL(donate.link.url).hostname });
+    }
+    donateDialog.classList.toggle("link-first", getLocale() !== "pt");
+    donateDialog.showModal();
+  });
+  donateCopyPix.addEventListener("click", () => copyText(pixPayload(donate.pix), donateCopyPix));
+  donateClose.addEventListener("click", () => donateDialog.close());
 
   fixHelpBtn.addEventListener("click", () => (fixHelpPopover.hidden = false));
   fixHelpClose.addEventListener("click", () => (fixHelpPopover.hidden = true));

@@ -98,7 +98,7 @@ export default {
   "status.valid": "JSON valido.",
   "status.fixNote": "Correzioni automatiche applicate (Correggi JSON): chiavi/valori senza virgolette, commenti, virgole in più o mancanti, ecc.",
   "status.joined": "{count} oggetti separati sono stati raggruppati in un array.",
-  "status.expanded": { one: "1 stringa con JSON serializzato è stata espansa in oggetto/array (deseleziona Fix JSON per tenerla come testo).", other: "{count} stringhe con JSON serializzato sono state espanse in oggetti/array (deseleziona Fix JSON per tenerle come testo)." },
+  "status.expanded": { one: "1 stringa con JSON serializzato è stata espansa in oggetto/array (deseleziona Correggi JSON per tenerla come testo).", other: "{count} stringhe con JSON serializzato sono state espanse in oggetti/array (deseleziona Correggi JSON per tenerle come testo)." },
   "status.fragmentWrapped": "Il frammento \"chiave\": valore non aveva { } intorno; è stato letto come un oggetto.",
   "status.quoteClosed": "Alla stringa aperta alla fine del testo mancavano le virgolette di chiusura; sono state aggiunte.",
   "status.fileError": "Impossibile leggere il file {name}.",

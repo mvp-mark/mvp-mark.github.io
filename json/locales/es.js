@@ -98,7 +98,7 @@ export default {
   "status.valid": "JSON válido.",
   "status.fixNote": "Correcciones automáticas aplicadas (Corregir JSON): claves/valores sin comillas, comentarios, comas sobrantes o faltantes, etc.",
   "status.joined": "{count} objetos separados se agruparon en un array.",
-  "status.expanded": { one: "1 string con JSON serializado se expandió en objeto/array (desmarca Fix JSON para mantenerlo como texto).", other: "{count} strings con JSON serializado se expandieron en objetos/arrays (desmarca Fix JSON para mantenerlos como texto)." },
+  "status.expanded": { one: "1 string con JSON serializado se expandió en objeto/array (desmarca Corregir JSON para mantenerlo como texto).", other: "{count} strings con JSON serializado se expandieron en objetos/arrays (desmarca Corregir JSON para mantenerlos como texto)." },
   "status.fragmentWrapped": "El fragmento \"clave\": valor no tenía { } alrededor; se leyó como un objeto.",
   "status.quoteClosed": "A la string abierta al final del texto le faltaba la comilla de cierre; se cerró.",
   "status.fileError": "No pude leer el archivo {name}.",
