@@ -82,20 +82,28 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="stylesheet" href="../style.css">
 <script>
-  // Vercel Web Analytics (no cookies), on the production domain only (the
-  // script doesn't exist elsewhere). The #fragment is dropped before sending:
-  // share links carry the JSON there, and it must never leave the browser.
+  // Vercel Web Analytics (no cookies) and Speed Insights, on the production
+  // domain only (the scripts don't exist elsewhere). The #fragment is dropped
+  // before sending: share links carry the JSON there, and it must never leave
+  // the browser.
   if (location.hostname === "fix-json.dev") {
-    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-    window.va("beforeSend", (event) => {
+    const withoutHash = (event) => {
+      if (!event.url) return event;
       const url = new URL(event.url);
       url.hash = "";
       return { ...event, url: url.href };
-    });
-    const analytics = document.createElement("script");
-    analytics.defer = true;
-    analytics.src = "/_vercel/insights/script.js";
-    document.head.appendChild(analytics);
+    };
+    for (const [fn, queue, src] of [
+      ["va", "vaq", "/_vercel/insights/script.js"],
+      ["si", "siq", "/_vercel/speed-insights/script.js"],
+    ]) {
+      window[fn] = window[fn] || function () { (window[queue] = window[queue] || []).push(arguments); };
+      window[fn]("beforeSend", withoutHash);
+      const script = document.createElement("script");
+      script.defer = true;
+      script.src = src;
+      document.head.appendChild(script);
+    }
   }
 </script>
 </head>
